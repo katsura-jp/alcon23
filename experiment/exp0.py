@@ -14,6 +14,7 @@ import torch.nn.functional as f
 from torch.utils.data import DataLoader
 import tensorboardX as tbx
 from torchvision.models import resnet18
+from fastprogress import progress_bar, master_bar
 
 from models import *
 from src.augmentation import get_test_augmentation, get_train_augmentation
@@ -53,12 +54,17 @@ def main():
     valid_dataset = AlconDataset(df=get_train_df().query('valid == @fold'),
                                  augmentation=get_test_augmentation(),
                                  datadir=os.path.join(param['dataroot'],'train','imgs'), mode='valid')
+    print('train dataset size: {}'.format(len(train_dataset)))
+    print('valid dataset size: {}'.format(len(valid_dataset)))
 
     # Dataloader
     train_dataloader = DataLoader(train_dataset, batch_size=param['batch size'],num_workers=0, #num_workers=param['thread'],
                                   pin_memory=False, drop_last=False)
     valid_dataloader = DataLoader(valid_dataset, batch_size=param['batch size'], num_workers=0,
                                   pin_memory=False, drop_last=False)
+
+    print('train loader size: {}'.format(len(train_dataloader)))
+    print('valid loader size: {}'.format(len(valid_dataloader)))
 
     # model
     model = resnet18(pretrained=True)
@@ -91,8 +97,8 @@ def main():
     max_char_acc = 0.
     max_3char_acc = 0.
     min_loss = 10**5
-
-    for epoch in range(param['epoch']):
+    mb = master_bar(range(param['epoch']))
+    for epoch in mb:
         avg_train_loss, avg_train_accuracy, avg_three_train_acc = train_alcon(model, optimizer, train_dataloader, param['device'],
                                        loss_fn, eval_fn, epoch, scheduler=None, writer=writer) #ok
 
@@ -204,12 +210,12 @@ def valid(model, dataloader, device, loss_fn, eval_fn):
     return avg_loss, avg_accuracy
 
 
-def train_alcon(model, optimizer, dataloader, device, loss_fn, eval_fn, epoch, scheduler=None, writer=None):
+def train_alcon(model, optimizer, dataloader, device, loss_fn, eval_fn, epoch, scheduler=None, writer=None, parent=None):
     model.train()
     avg_loss = 0
     avg_accuracy = 0
     three_char_accuracy = 0
-    for step, (inputs, targets) in enumerate(dataloader):
+    for step, (inputs, targets) in progress_bar(enumerate(dataloader), parent=parent):
         inputs = inputs.to(device)
         targets = targets.to(device)
         _avg_loss = 0
