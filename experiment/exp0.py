@@ -215,7 +215,7 @@ def train_alcon(model, optimizer, dataloader, device, loss_fn, eval_fn, epoch, s
     avg_loss = 0
     avg_accuracy = 0
     three_char_accuracy = 0
-    for step, (inputs, targets) in progress_bar(enumerate(dataloader), parent=parent):
+    for step, (inputs, targets) in enumerate(progress_bar(dataloader, parent=parent)):
         inputs = inputs.to(device)
         targets = targets.to(device)
         _avg_loss = 0
