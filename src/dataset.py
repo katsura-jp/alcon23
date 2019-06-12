@@ -29,6 +29,9 @@ class KanaDataset(Dataset):
         image = self.augmentation(image=image)['image']
 
         return image, target
+    
+    def set_augmentation(augmentation):
+        self.augmentation = augmentation
 
     def __len__(self):
         return len(self.df)
@@ -121,6 +124,11 @@ class AlconDataset(Dataset):
             else:
                 image = self.augmentation(image=image)['image']
                 return image
+
+
+    def set_augmentation(augmentation):
+        self.augmentation = augmentation
+
 
     def __len__(self):
         return len(self.df)
