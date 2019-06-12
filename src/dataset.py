@@ -15,9 +15,10 @@ class KanaDataset(Dataset):
         self.num_classes = 48
 
     def __getitem__(self, index):
+        _index = self.df.index[index]
         image = np.array(
-            Image.open(os.path.join(self.datadir, self.df.loc[index, "Unicode"], self.df.loc[index, "file"])))
-        label = int(self.df.loc[index, "target"])
+            Image.open(os.path.join(self.datadir, self.df.loc[_index, "Unicode"], self.df.loc[_index, "file"])))
+        label = int(self.df.loc[_index, "target"])
         if self.onehot:
             target = np.zeros(self.num_classes, dtype=np.float32)
             target[label] = 1.0
@@ -45,11 +46,12 @@ class AlconDataset(Dataset):
         self.num_classes = 48
 
     def __getitem__(self, index):
-        image = np.array(Image.open(os.path.join(self.datadir, self.df.loc[index, "file"])))
+        _index = self.df.index[index]
+        image = np.array(Image.open(os.path.join(self.datadir, self.df.loc[_index, "file"])))
         if self.mode == 'train':
             targets = []
             for i in range(1, 4):
-                label = int(self.df.loc[index, f"target{i}"])
+                label = int(self.df.loc[_index, f"target{i}"])
                 if self.onehot:
                     target = np.zeros(self.num_classes, dtype=np.float32)
                     target[label] = 1.0
@@ -59,9 +61,9 @@ class AlconDataset(Dataset):
             targets = np.array(targets)
             targets = torch.from_numpy(targets)
             if self.split:
-                split1 = self.df.loc[index, 'split1']
-                split2 = self.df.loc[index, 'split2']
-                margin = self.df.loc[index, 'margin']
+                split1 = self.df.loc[_index, 'split1']
+                split2 = self.df.loc[_index, 'split2']
+                margin = self.df.loc[_index, 'margin']
                 img1 = image[:split1 + margin, :, :]
                 img2 = image[split1 - margin:split2 + margin, :, :]
                 img3 = image[split2 - margin:, :, :]
@@ -73,11 +75,11 @@ class AlconDataset(Dataset):
             else:
                 image = self.augmentation(image=image)['image']
                 return image, targets
-            
+
         elif self.mode == 'valid':
             targets = []
             for i in range(1, 4):
-                label = int(self.df.loc[index, f"target{i}"])
+                label = int(self.df.loc[_index, f"target{i}"])
                 if self.onehot:
                     target = np.zeros(self.num_classes, dtype=np.float32)
                     target[label] = 1.0
@@ -87,9 +89,9 @@ class AlconDataset(Dataset):
             targets = np.array(targets)
             targets = torch.from_numpy(targets)
             if self.split:
-                split1 = self.df.loc[index, 'split1']
-                split2 = self.df.loc[index, 'split2']
-                margin = self.df.loc[index, 'margin']
+                split1 = self.df.loc[_index, 'split1']
+                split2 = self.df.loc[_index, 'split2']
+                margin = self.df.loc[_index, 'margin']
                 img1 = image[:split1 + margin, :, :]
                 img2 = image[split1 - margin:split2 + margin, :, :]
                 img3 = image[split2 - margin:, :, :]
@@ -105,9 +107,9 @@ class AlconDataset(Dataset):
         elif self.mode == 'test':
             # test
             if self.split:
-                split1 = self.df.loc[index, 'split1']
-                split2 = self.df.loc[index, 'split2']
-                margin = self.df.loc[index, 'margin']
+                split1 = self.df.loc[_index, 'split1']
+                split2 = self.df.loc[_index, 'split2']
+                margin = self.df.loc[_index, 'margin']
                 img1 = image[:split1 + margin, :, :]
                 img2 = image[split1 - margin:split2 + margin, :, :]
                 img3 = image[split2 - margin:, :, :]

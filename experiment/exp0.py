@@ -1,6 +1,6 @@
 import os
 import sys
-sys.append('../')
+sys.path.append('../')
 import gc
 import glob
 import yaml
@@ -20,9 +20,14 @@ from src.augmentation import get_test_augmentation, get_train_augmentation
 from src.dataset import AlconDataset, KanaDataset
 from src.metrics import *
 from src.utils import *
+from src.collates import *
+
+#TODO:
 
 def main():
-    print(datetime.datetime.now())
+    now = datetime.datetime.now()
+    now_date = '{}-{}-{}-{}-{}-{}'.format(now.year, now.month, now.day, now.hour, now.minute, now.second)
+    print('{}-{}-{} {}:{}:{}'.format(now.year, now.month, now.day, now.hour, now.minute, now.second))
     with open('../params/exp0.yaml', "r+") as f:
         param = yaml.load(f, Loader=yaml.FullLoader)
 
@@ -31,25 +36,34 @@ def main():
     if torch.cuda.is_available():
         torch.backends.cudnn.benchmark = True
 
+    fold = param['fold']
+    outdir = os.path.join(param['save path'], str(os.path.basename(__file__).split('.')[-2]) + '_fold{}'.format(fold), now_date)
+    if os.path.exists(param['save path']):
+        os.makedirs(outdir, exist_ok=True)
+    else:
+        raise "Not find {}".format(param['save path'])
 
 
     # Dataset
-    train_dataset = AlconDataset(df=get_train_df().query('valid != @param["fold"]'),
-                                 augmentation=get_train_augmentation(), datadir=param['datadir'], mode='train')
-    valid_dataset = AlconDataset(df=get_train_df().query('valid == @param["fold"]'),
-                                 augmentation=get_test_augmentation(), datadir=param['datadir'], mode='valid')
+
+    train_dataset = AlconDataset(df=get_train_df().query('valid != @fold'),
+                                 augmentation=get_train_augmentation(),
+                                 datadir=os.path.join(param['dataroot'],'train','imgs'), mode='train')
+    valid_dataset = AlconDataset(df=get_train_df().query('valid == @fold'),
+                                 augmentation=get_test_augmentation(),
+                                 datadir=os.path.join(param['dataroot'],'train','imgs'), mode='valid')
 
     # Dataloader
-    train_dataloader = DataLoader(train_dataset, batch_size=param['batch size'], num_workers=param['thread'],
+    train_dataloader = DataLoader(train_dataset, batch_size=param['batch size'],num_workers=0, #num_workers=param['thread'],
                                   pin_memory=False, drop_last=False)
-    valid_dataloader = DataLoader(valid_dataset, batch_size=param['batch size'], num_workers=param['thread'],
+    valid_dataloader = DataLoader(valid_dataset, batch_size=param['batch size'], num_workers=0,
                                   pin_memory=False, drop_last=False)
 
     # model
     model = resnet18(pretrained=True)
     model.fc = nn.Linear(model.fc.in_features, 48)
 
-    param['model'] = str(model)
+    param['model'] = model.__class__.__name__
 
     # optim
     if param['optim'].lower() == 'sgd':
@@ -65,25 +79,74 @@ def main():
 
 
     writer = tbx.SummaryWriter("../log/exp0")
-    writer.add_scalars('hyperparam',param, 0)
+    for key, val in param.items():
+        # print(f'{key}: {val}')
+        writer.add_text('hyperparam/{}'.format(key),str(val), 0)
 
     model = model.to(param['device'])
     loss_fn = torch.nn.CrossEntropyLoss().to(param['device'])
     eval_fn = accuracy
 
+    max_char_acc = 0.
+    max_3char_acc = 0.
+    min_loss = 10**5
+
     for epoch in range(param['epoch']):
-        avg_train_loss, avg_train_accuracy = train(model, optimizer, train_dataloader, param['device'],
-                                       loss_fn, eval_fn, epoch, scheduler, writer)
+        avg_train_loss, avg_train_accuracy, avg_three_train_acc = train_alcon(model, optimizer, train_dataloader, param['device'],
+                                       loss_fn, eval_fn, epoch, scheduler=None, writer=writer) #ok
 
-        avg_valid_loss, avg_valid_accuracy = valid(model, valid_dataloader, param['device'], loss_fn, eval_fn)
+        avg_valid_loss, avg_valid_accuracy, avg_three_valid_acc = valid_alcon(model, valid_dataloader, param['device'],
+                                                                              loss_fn, eval_fn)
 
-        writer.add_scalars("data/metric", {
-            'valid_loss': avg_valid_loss,
-            'valid_accuracy': avg_valid_accuracy
+        writer.add_scalars("data/metric/valid", {
+            'loss': avg_valid_loss,
+            'accuracy': avg_valid_accuracy,
+            '3accuracy': avg_three_valid_acc
         }, epoch)
 
+        print('======================== epoch {} ======================='.format(epoch+1))
+        print('lr              : {:.5f}'.format(scheduler.get_lr()[0]))
+        print('loss            : train={:.4f}  , test={:.4f}'.format(avg_train_loss, avg_valid_loss))
+        print('acc(per 1 char) : train={:.3f}  , test={:.3f}'.format(avg_train_accuracy, avg_valid_accuracy))
+        print('acc(per 3 char) : train={:.3f}  , test={:.3f}'.format(avg_three_train_acc, avg_three_valid_acc))
 
+        if min_loss < avg_valid_loss:
+            print('update best loss:  {:5f} ---> {:.5f}'.format(min_loss, avg_valid_loss))
+            min_loss = avg_valid_loss
+            torch.save(model.state_dict(), os.path.join(outdir, 'best_loss.pth'))
+
+        if max_char_acc < avg_valid_accuracy:
+            print('update best acc per 1 char:  {:5f} ---> {:.5f}'.format(max_char_acc, avg_valid_accuracy))
+            max_char_acc = avg_valid_accuracy
+            torch.save(model.state_dict(), os.path.join(outdir, 'best_acc.pth'))
+
+        if max_3char_acc < avg_three_valid_acc:
+            print('update best acc per 3 char:  {:5f} ---> {:.5f}'.format(max_3char_acc , avg_three_valid_acc))
+            max_3char_acc = avg_three_valid_acc
+            torch.save(model.state_dict(), os.path.join(outdir, 'best_3acc.pth'))
+
+        if 1:
+            if scheduler is not None:
+                if writer is not None:
+                    writer.add_scalar("data/learning rate", scheduler.get_lr()[0], epoch)
+                scheduler.step()
+
+
+    writer.add_scalars("data/metric/valid", {
+        'best loss': min_loss,
+        'best accuracy': max_char_acc,
+        'best 3accuracy': max_3char_acc
+    })
+
+    print('finish train')
+    print('result')
+    print('best loss : {}'.format(min_loss))
+    print('best 1 acc : {}'.format(max_char_acc))
+    print('best 3 acc : {}'.format(max_3char_acc))
+    writer.export_scalars_to_json(os.path.join(outdir, 'history.json'))
     writer.close()
+
+    #TODO: prediction, SnapShotEnsemble
 
 
 def prediction():
@@ -108,10 +171,10 @@ def train(model, optimizer, dataloader, device, loss_fn, eval_fn, epoch, schedul
         avg_accuracy += acc
         if scheduler is not None:
             if writer is not None:
-                writer.add_scalar("data/lr", scheduler.get_lr()[0], step + epoch*len(dataloader))
+                writer.add_scalar("data/learning rate", scheduler.get_lr()[0], step + epoch*len(dataloader))
             scheduler.step()
 
-        writer.add_scalars("data/metric", {
+        writer.add_scalars("data/metric/train", {
             'train_loss': loss.item(),
             'train_accuracy': acc
         }, step + epoch*len(dataloader))
@@ -120,52 +183,117 @@ def train(model, optimizer, dataloader, device, loss_fn, eval_fn, epoch, schedul
     avg_accuracy /= len(dataloader)
     return avg_loss, avg_accuracy
 
+
+def valid(model, dataloader, device, loss_fn, eval_fn):
+    model.eval()
+    avg_loss = 0
+    avg_accuracy = 0
+    with torch.no_grad():
+        for inputs, targets in dataloader:
+            inputs = inputs.to(device)
+            targets = targets.to(device)
+            logits = model(inputs)
+            preds = logits.softmax(dim=1)
+            loss = loss_fn(logits, targets.argmax(dim=1))
+            avg_loss += loss.item()
+            avg_accuracy += eval_fn(preds, targets)
+        avg_loss /= len(dataloader)
+        avg_accuracy /= len(dataloader)
+
+    return avg_loss, avg_accuracy
+
+
 def train_alcon(model, optimizer, dataloader, device, loss_fn, eval_fn, epoch, scheduler=None, writer=None):
     model.train()
     avg_loss = 0
     avg_accuracy = 0
     three_char_accuracy = 0
     for step, (inputs, targets) in enumerate(dataloader):
-        inputs = inputs
-        targets = targets
+        inputs = inputs.to(device)
+        targets = targets.to(device)
         _avg_loss = 0
         _avg_accuracy = 0
-        pred = torch.zeros(targets.size())
+        preds = torch.zeros(targets.size()).to(device)
         for i in range(3):
-            _inputs = inputs[:, i].to(device)
-            _targets = inputs[:, i].to(device)
+            # _inputs = inputs[:, i].to(device)
+            # _targets = targets[:, i].to(device)
+            _inputs = inputs[:, i]
+            _targets = targets[:, i]
             optimizer.zero_grad()
             logits = model(_inputs)
             _preds = logits.softmax(dim=1)
-            pred[:, i] = _preds
+            preds[:, i] = _preds
             loss = loss_fn(logits, _targets.argmax(dim=1))
             loss.backward()
             # nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             optimizer.step()
             _avg_loss += loss.item()
-            acc = eval_fn(_preds, targets)
-            _avg_accuracy += acc
+            acc = eval_fn(_preds, _targets.argmax(dim=1))
+            _avg_accuracy += acc.item()
         _avg_loss /= 3
         avg_loss += _avg_loss
         _avg_accuracy /= 3
         avg_accuracy += _avg_accuracy
 
-        #TODO:ここに三文字の精度
-        three_char_accuracy = accuracy_three_character(pred, targets, mean=True)
+        _three_char_accuracy = accuracy_three_character(preds, targets.argmax(dim=2), mean=True).item()
+        # _three_char_accuracy = accuracy_three_character(pred, targets.to(device), mean=True)
+
+        three_char_accuracy += _three_char_accuracy
         if scheduler is not None:
             if writer is not None:
-                writer.add_scalar("data/lr", scheduler.get_lr()[0], step + epoch*len(dataloader))
+                writer.add_scalar("data/learning rate", scheduler.get_lr()[0], step + epoch*len(dataloader))
             scheduler.step()
 
-        writer.add_scalars("data/metric", {
-            'train_loss': loss.item(),
-            'train_accuracy': acc,
-            'train_3char_accuracy': three_char_accuracy
+        writer.add_scalars("data/metric/train", {
+            'loss': _avg_loss,
+            'accuracy': _avg_accuracy,
+            '3accuracy': _three_char_accuracy
         }, step + epoch*len(dataloader))
 
     avg_loss /= len(dataloader)
     avg_accuracy /= len(dataloader)
-    return avg_loss, avg_accuracy
+    three_char_accuracy /= len(dataloader)
+    return avg_loss, avg_accuracy, three_char_accuracy
+
+
+def valid_alcon(model, dataloader, device, loss_fn, eval_fn):
+    model.eval()
+    with torch.no_grad():
+        avg_loss = 0
+        avg_accuracy = 0
+        three_char_accuracy = 0
+        for step, (inputs, targets) in enumerate(dataloader):
+            inputs = inputs.to(device)
+            targets = targets.to(device)
+            _avg_loss = 0
+            _avg_accuracy = 0
+            preds = torch.zeros(targets.size()).to(device)
+            for i in range(3):
+                # _inputs = inputs[:, i].to(device)
+                # _targets = targets[:, i].to(device)
+                _inputs = inputs[:, i]
+                _targets = targets[:, i]
+                logits = model(_inputs)
+                _preds = logits.softmax(dim=1)
+                preds[:, i] = _preds
+                loss = loss_fn(logits, _targets.argmax(dim=1))
+                _avg_loss += loss.item()
+                acc = eval_fn(_preds, _targets.argmax(dim=1))
+                _avg_accuracy += acc.item()
+            _avg_loss /= 3
+            avg_loss += _avg_loss
+            _avg_accuracy /= 3
+            avg_accuracy += _avg_accuracy
+
+            _three_char_accuracy = accuracy_three_character(preds, targets.argmax(dim=2), mean=True).item()
+            # _three_char_accuracy = accuracy_three_character(pred, targets.to(device), mean=True)
+
+            three_char_accuracy += _three_char_accuracy
+
+        avg_loss /= len(dataloader)
+        avg_accuracy /= len(dataloader)
+        three_char_accuracy /= len(dataloader)
+    return avg_loss, avg_accuracy, three_char_accuracy
 
 
 def train_mixup(model, optimizer, dataloader, device, loss_fn, eval_fn, epoch, scheduler=None, writer=None):
@@ -191,60 +319,9 @@ def train_mixup(model, optimizer, dataloader, device, loss_fn, eval_fn, epoch, s
 
     return avg_loss
 
-def valid(model, dataloader, device, loss_fn, eval_fn):
-    model.eval()
-    avg_loss = 0
-    avg_accuracy = 0
-    with torch.no_grad():
-        for inputs, targets in dataloader:
-            inputs = inputs.to(device)
-            targets = targets.to(device)
-            logits = model(inputs)
-            preds = logits.softmax(dim=1)
-            loss = loss_fn(logits, targets.argmax(dim=1))
-            avg_loss += loss.item()
-            avg_accuracy += eval_fn(preds, targets)
-        avg_loss /= len(dataloader)
-        avg_accuracy /= len(dataloader)
-
-    return avg_loss, avg_accuracy
 
 
-def valid_alcon(model, dataloader, device, loss_fn, eval_fn):
-    model.eval()
-    avg_loss = 0
-    avg_accuracy = 0
-    avg_3char_acc = 0
-    with torch.no_grad():
-        for inputs, targets in dataloader:
-            inputs = inputs
-            targets = targets
-            _avg_loss = 0
-            _avg_accuracy = 0
-            preds = torch.zeros(targets.size(), dtype='float32').to(device)
-            for i in range(3):
-                _inputs = inputs[:, i].to(device)
-                _targets = targets[:, i].to(device)
-                logits = model(inputs)
-                _preds = logits.softmax(dim=1)
-                preds[:, i] = _preds
-                loss = loss_fn(logits, _targets.argmax(dim=1))
-                _avg_loss += loss.item()
-                _avg_accuracy += eval_fn(_preds, _targets)
-            _avg_loss /= 3
-            _avg_accuracy /= 3
-            avg_loss += _avg_loss
-            avg_accuracy += _avg_accuracy
-            avg_3char_acc += accuracy_three_character(preds, targets, mean=True)
-        avg_loss /= len(dataloader)
-        avg_accuracy /= len(dataloader)
-        avg_3char_acc /= len(dataloader)
-    return avg_loss, avg_accuracy, avg_3char_acc
 
-def seed_setting(seed=1029):
-    random.seed(seed)
-    os.environ["PYTHONHASHSEED"] = str(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-    torch.backends.cudnn.deterministic = True
+
+if __name__ =='__main__':
+    main()
