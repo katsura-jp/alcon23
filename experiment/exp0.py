@@ -26,7 +26,7 @@ from src.collates import *
 
 def main():
     now = datetime.datetime.now()
-    now_date = '{}-{}-{}-{}-{}-{}'.format(now.year, now.month, now.day, now.hour, now.minute, now.second)
+    now_date = '{}-{:0>2d}-{:0>2d}_{:0>2d}-{:0>2d}-{:0>2d}'.format(now.year, now.month, now.day, now.hour, now.minute, now.second)
     print('{}-{}-{} {}:{}:{}'.format(now.year, now.month, now.day, now.hour, now.minute, now.second))
     with open('../params/exp0.yaml', "r+") as f:
         param = yaml.load(f, Loader=yaml.FullLoader)
@@ -41,7 +41,8 @@ def main():
     if os.path.exists(param['save path']):
         os.makedirs(outdir, exist_ok=True)
     else:
-        raise "Not find {}".format(param['save path'])
+        print("Not find {}".format(param['save path']))
+        raise FileNotFoundError
 
 
     # Dataset
