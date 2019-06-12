@@ -31,7 +31,7 @@ def main():
     print('{}-{}-{} {}:{}:{}'.format(now.year, now.month, now.day, now.hour, now.minute, now.second))
     with open('../params/exp0.yaml', "r+") as f:
         param = yaml.load(f, Loader=yaml.FullLoader)
-
+    param['date'] =  now_date
     # seed set
     seed_setting(param['seed'])
     if torch.cuda.is_available():
@@ -58,9 +58,9 @@ def main():
     print('valid dataset size: {}'.format(len(valid_dataset)))
 
     # Dataloader
-    train_dataloader = DataLoader(train_dataset, batch_size=param['batch size'],num_workers=0, #num_workers=param['thread'],
+    train_dataloader = DataLoader(train_dataset, batch_size=param['batch size'], num_workers=param['thread'],
                                   pin_memory=False, drop_last=False)
-    valid_dataloader = DataLoader(valid_dataset, batch_size=param['batch size'], num_workers=0,
+    valid_dataloader = DataLoader(valid_dataset, batch_size=param['batch size'], num_workers=param['thread'],
                                   pin_memory=False, drop_last=False)
 
     print('train loader size: {}'.format(len(train_dataloader)))
@@ -88,7 +88,7 @@ def main():
     writer = tbx.SummaryWriter("../log/exp0")
     for key, val in param.items():
         # print(f'{key}: {val}')
-        writer.add_text('hyperparam/{}'.format(key),str(val), 0)
+        writer.add_text('data/hyperparam/{}'.format(key),str(val), 0)
 
     model = model.to(param['device'])
     loss_fn = torch.nn.CrossEntropyLoss().to(param['device'])
@@ -100,7 +100,7 @@ def main():
     mb = master_bar(range(param['epoch']))
     for epoch in mb:
         avg_train_loss, avg_train_accuracy, avg_three_train_acc = train_alcon(model, optimizer, train_dataloader, param['device'],
-                                       loss_fn, eval_fn, epoch, scheduler=None, writer=writer) #ok
+                                       loss_fn, eval_fn, epoch, scheduler=None, writer=writer, parent=mb) #ok
 
         avg_valid_loss, avg_valid_accuracy, avg_three_valid_acc = valid_alcon(model, valid_dataloader, param['device'],
                                                                               loss_fn, eval_fn)
@@ -260,6 +260,7 @@ def train_alcon(model, optimizer, dataloader, device, loss_fn, eval_fn, epoch, s
     avg_loss /= len(dataloader)
     avg_accuracy /= len(dataloader)
     three_char_accuracy /= len(dataloader)
+    print()
     return avg_loss, avg_accuracy, three_char_accuracy
 
 
