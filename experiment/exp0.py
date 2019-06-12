@@ -111,24 +111,24 @@ def main():
             '3accuracy': avg_three_valid_acc
         }, epoch)
 
-        print('======================== epoch {} ======================='.format(epoch+1))
+        print('======================== epoch {} ========================'.format(epoch+1))
         print('lr              : {:.5f}'.format(scheduler.get_lr()[0]))
-        print('loss            : train={:.4f}  , test={:.4f}'.format(avg_train_loss, avg_valid_loss))
-        print('acc(per 1 char) : train={:.3f}  , test={:.3f}'.format(avg_train_accuracy, avg_valid_accuracy))
-        print('acc(per 3 char) : train={:.3f}  , test={:.3f}'.format(avg_three_train_acc, avg_three_valid_acc))
+        print('loss            : train={:.5f}  , test={:.5f}'.format(avg_train_loss, avg_valid_loss))
+        print('acc(per 1 char) : train={:.3%}  , test={:.3%}'.format(avg_train_accuracy, avg_valid_accuracy))
+        print('acc(per 3 char) : train={:.3%}  , test={:.3%}'.format(avg_three_train_acc, avg_three_valid_acc))
 
-        if min_loss < avg_valid_loss:
-            print('update best loss:  {:5f} ---> {:.5f}'.format(min_loss, avg_valid_loss))
+        if min_loss > avg_valid_loss:
+            print('update best loss:  {:.5f} ---> {:.5f}'.format(min_loss, avg_valid_loss))
             min_loss = avg_valid_loss
             torch.save(model.state_dict(), os.path.join(outdir, 'best_loss.pth'))
 
         if max_char_acc < avg_valid_accuracy:
-            print('update best acc per 1 char:  {:5f} ---> {:.5f}'.format(max_char_acc, avg_valid_accuracy))
+            print('update best acc per 1 char:  {:.3%} ---> {:.3%}'.format(max_char_acc, avg_valid_accuracy))
             max_char_acc = avg_valid_accuracy
             torch.save(model.state_dict(), os.path.join(outdir, 'best_acc.pth'))
 
         if max_3char_acc < avg_three_valid_acc:
-            print('update best acc per 3 char:  {:5f} ---> {:.5f}'.format(max_3char_acc , avg_three_valid_acc))
+            print('update best acc per 3 char:  {:.3%} ---> {:.3%}'.format(max_3char_acc , avg_three_valid_acc))
             max_3char_acc = avg_three_valid_acc
             torch.save(model.state_dict(), os.path.join(outdir, 'best_3acc.pth'))
 
