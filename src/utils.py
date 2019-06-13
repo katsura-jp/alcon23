@@ -26,7 +26,7 @@ def get_train_df():
     return pd.read_csv('../input/tables/train.csv')
 
 def get_test_df():
-    return pd.read_csv('../input/tables/train.csv')
+    return pd.read_csv('../input/tables/test.csv')
 
 def get_char_df():
     return pd.read_csv('../input/tables/character.csv')
