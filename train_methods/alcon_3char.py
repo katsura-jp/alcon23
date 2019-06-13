@@ -1,13 +1,20 @@
+import sys
+import os
+
 import torch
 from fastprogress import progress_bar
-from ..src.metrics import *
+import pandas as pd
+
+from src.metrics import *
+from src.utils import *
+
 
 def train_alcon(model, optimizer, dataloader, device, loss_fn, eval_fn, epoch, scheduler=None, writer=None, parent=None):
     model.train()
     avg_loss = 0
     avg_accuracy = 0
     three_char_accuracy = 0
-    for step, (inputs, targets) in enumerate(progress_bar(dataloader, parent=parent)):
+    for step, (inputs, targets, indices) in enumerate(progress_bar(dataloader, parent=parent)):
         inputs = inputs.to(device)
         targets = targets.to(device)
         _avg_loss = 0
@@ -62,7 +69,7 @@ def valid_alcon(model, dataloader, device, loss_fn, eval_fn):
         avg_loss = 0
         avg_accuracy = 0
         three_char_accuracy = 0
-        for step, (inputs, targets) in enumerate(dataloader):
+        for step, (inputs, targets, indices) in enumerate(dataloader):
             inputs = inputs.to(device)
             targets = targets.to(device)
             _avg_loss = 0
@@ -94,3 +101,37 @@ def valid_alcon(model, dataloader, device, loss_fn, eval_fn):
         avg_accuracy /= len(dataloader)
         three_char_accuracy /= len(dataloader)
     return avg_loss, avg_accuracy, three_char_accuracy
+
+
+def pred_alcon(model, dataloader, device):
+    output_list = list()
+    vocab = get_vocab()
+
+    model.eval()
+    with torch.no_grad():
+        for step, (inputs, indices) in enumerate(dataloader):
+            inputs = inputs.to(device)
+            preds = torch.zeros(inputs.size(0), 3, 48).to('cpu')
+            logits = torch.zeros(inputs.size(0), 3, 48).to('cpu')
+            for i in range(3):
+                # _inputs = inputs[:, i].to(device)
+                # _targets = targets[:, i].to(device)
+                _inputs = inputs[:, i]
+                _logits = model(_inputs)
+                logits[:, i] = _logits.detach().to('cpu')
+                _preds = _logits.softmax(dim=1).detach().to('cpu')
+                preds[:, i] = _preds
+
+            for i in range(inputs.size(0)):
+                index = indices[i]
+                prediction = dict()
+                prediction['ID'] = int(index.item())
+                prediction['Unicode1'] = vocab['index2uni'][int(preds[i, 0].argmax(dim=0).item())]
+                prediction['Unicode2'] = vocab['index2uni'][int(preds[i, 1].argmax(dim=0).item())]
+                prediction['Unicode3'] = vocab['index2uni'][int(preds[i, 2].argmax(dim=0).item())]
+                prediction['logit'] = logits[i].detach().to('cpu')
+                output_list.append(prediction)
+        print()
+
+
+    return output_list

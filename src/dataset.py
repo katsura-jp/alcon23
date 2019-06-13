@@ -30,11 +30,13 @@ class KanaDataset(Dataset):
 
         return image, target
     
-    def set_augmentation(augmentation):
+    def set_augmentation(self, augmentation):
         self.augmentation = augmentation
 
     def __len__(self):
         return len(self.df)
+
+
 
 
 class AlconDataset(Dataset):
@@ -74,10 +76,10 @@ class AlconDataset(Dataset):
                 for i, img in enumerate([img1, img2, img3]):
                     images.append(self.augmentation(image=img)['image'].numpy())
                 images = torch.from_numpy(np.array(images))
-                return images, targets
+                return images, targets, _index
             else:
                 image = self.augmentation(image=image)['image']
-                return image, targets
+                return image, targets, _index
 
         elif self.mode == 'valid':
             targets = []
@@ -102,10 +104,10 @@ class AlconDataset(Dataset):
                 for i, img in enumerate([img1, img2, img3]):
                     images.append(self.augmentation(image=img)['image'].numpy())
                 images = torch.from_numpy(np.array(images))
-                return images, targets
+                return images, targets, _index
             else:
                 image = self.augmentation(image=image)['image']
-                return image, targets
+                return image, targets, _index
 
         elif self.mode == 'test':
             # test
@@ -120,13 +122,13 @@ class AlconDataset(Dataset):
                 for i, img in enumerate([img1, img2, img3]):
                     images.append(self.augmentation(image=img)['image'].numpy())
                 images = torch.from_numpy(np.array(images))
-                return images
+                return images, _index
             else:
                 image = self.augmentation(image=image)['image']
-                return image
+                return image, _index
 
 
-    def set_augmentation(augmentation):
+    def set_augmentation(self, augmentation):
         self.augmentation = augmentation
 
 

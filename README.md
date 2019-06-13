@@ -74,7 +74,8 @@ $ python expN.py
 - distillation
 - Negative Sampling
 - AutoAugmentation
-
+- ArcFace
+- CosFace
 
 ## Scheduler
 - Cosine Annearing
