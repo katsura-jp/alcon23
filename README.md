@@ -9,14 +9,14 @@ $ python creat_vocab.py # make vocabrary
 $ python creat_table_multiprocess.py # make meta files
 $ cd ../
 ```
-2. 学習をする。
+2. 学習/推論をする。
 ```
 $ cd experiment
 $ vim ../param/expN.yaml # change params
 $ python expN.py
 ```
 
-3. 推論する。
+3. アンサンブル
 
 
 
@@ -24,8 +24,8 @@ $ python expN.py
 ## 結果
 | exp No. | Local CV | Public | Private | comment |
 | ------: | -------: | -----: | ------: | :------ |
-| 0       |          |        |         | example |
-| 1       |          |        |         |         |
+| 0       |  87.391% |        |         | test example. only fold0. |
+| 1       |          |        |         | simple resnet18.  |
 | 2       |          |        |         |         |
 | 3       |          |        |         |         |
 | 4       |          |        |         |         |
@@ -33,6 +33,11 @@ $ python expN.py
 | 6       |          |        |         |         |
 | 7       |          |        |         |         |
 | 8       |          |        |         |         |
+
+
+## メモ
+- resnet18,batch 128で16m / epoch
+
 
 
 ## アイデア
@@ -63,7 +68,9 @@ $ python expN.py
 - pnasnet
 - xception
 - PolyNet
-
+- OctConv
+- PyramidNet
+- DenseNet-BC
 
 ## Technique
 - Shake-Shake
@@ -76,6 +83,7 @@ $ python expN.py
 - AutoAugmentation
 - ArcFace
 - CosFace
+- Pseudo-Label
 
 ## Scheduler
 - Cosine Annearing
