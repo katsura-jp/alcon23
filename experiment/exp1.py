@@ -50,8 +50,8 @@ def main():
 
 
     for fold in param['fold']:
-    # fold = param['fold']
-        outdir = os.path.join(param['save path'], str(os.path.basename(__file__).split('.')[-2]) + '_fold{}'.format(fold), now_date)
+        # /mnt/hdd1/alcon2019/ + exp0/ + 2019-mm-dd_hh-mm-ss/ + foldN
+        outdir = os.path.join(param['save path'], str(os.path.basename(__file__).split('.')[-2]) ,now_date, 'fold{}'.format(fold))
         if os.path.exists(param['save path']):
             os.makedirs(outdir, exist_ok=True)
         else:
@@ -109,14 +109,14 @@ def main():
         loss_fn = torch.nn.CrossEntropyLoss().to(param['device'])
         eval_fn = accuracy
 
-        max_char_acc = 0.
-        max_3char_acc = 0.
+        max_char_acc = -1.
+        max_3char_acc = -1.
         min_loss = 10**5
 
 
-        writer = tbx.SummaryWriter("../log/exp0")
+        writer = tbx.SummaryWriter("../log/exp{}/{}/fold{}".format(EXP_NO, now_date, fold))
+
         for key, val in param.items():
-            # print(f'{key}: {val}')
             writer.add_text('data/hyperparam/{}'.format(key), str(val), 0)
 
 
@@ -167,11 +167,11 @@ def main():
             'best 3accuracy': max_3char_acc
         })
 
-        logger.debug('finish train')
-        logger.debug('result')
-        logger.debug('best loss : {}'.format(min_loss))
-        logger.debug('best 1 acc : {}'.format(max_char_acc))
-        logger.debug('best 3 acc : {}'.format(max_3char_acc))
+        logger.debug('================  FINISH  TRAIN  ================')
+        logger.debug('Result')
+        logger.debug('Best loss : {}'.format(min_loss))
+        logger.debug('Best 1 acc : {}'.format(max_char_acc))
+        logger.debug('Best 3 acc : {}'.format(max_3char_acc))
         writer.export_scalars_to_json(os.path.join(outdir, 'history.json'))
         writer.close()
 
@@ -181,7 +181,7 @@ def main():
         gc.collect()
 
 
-        logger.debug('====== Prediction phrase ======')
+        logger.debug('=========== Prediction phrase ===========')
         logger.debug('load weight  :  {}'.format(os.path.join(outdir, 'best_3acc.pth')))
         model.load_state_dict(torch.load(os.path.join(outdir, 'best_3acc.pth')))
 
@@ -198,7 +198,7 @@ def main():
         torch.save(output_list, os.path.join(outdir, 'prediction.pth'))
         pd.DataFrame(output_list).drop('logit', axis=1).sort_values('ID').set_index('ID').to_csv(os.path.join(outdir, 'submission.csv'))
         logger.debug('success!')
-        logging.removeHandler(file_handler)
+        logger.removeHandler(file_handler)
 
         del test_dataset, test_dataloader
         gc.collect()
