@@ -39,14 +39,14 @@ def main():
         torch.backends.cudnn.benchmark = True
 
     fold = param['fold']
-    # outdir = os.path.join(param['save path'], str(os.path.basename(__file__).split('.')[-2]) + '_fold{}'.format(fold), now_date)
-    # if os.path.exists(param['save path']):
-    #     os.makedirs(outdir, exist_ok=True)
-    # else:
-    #     print("Not find {}".format(param['save path']))
-    #     raise FileNotFoundError
+    outdir = os.path.join(param['save path'], str(os.path.basename(__file__).split('.')[-2]) + '_fold{}'.format(fold), now_date)
+    if os.path.exists(param['save path']):
+        os.makedirs(outdir, exist_ok=True)
+    else:
+        print("Not find {}".format(param['save path']))
+        raise FileNotFoundError
 
-    outdir = '../tmp'
+    # outdir = '../tmp'
 
 
     # Dataset
@@ -143,7 +143,6 @@ def main():
                 if writer is not None:
                     writer.add_scalar("data/learning rate", scheduler.get_lr()[0], epoch)
                 scheduler.step()
-
 
     writer.add_scalars("data/metric/valid", {
         'best loss': min_loss,
