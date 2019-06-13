@@ -1,6 +1,11 @@
 # 第23回　アルゴリズムコンテスト
 テーマ：三文字の崩し文字認識
 
+## 概要
+- 公式HP: https://sites.google.com/view/alcon2019/%E3%83%9B%E3%83%BC%E3%83%A0?authuser=0
+- 提出場所: https://competitions.codalab.org/competitions/23101#participate-submit_results
+- 期間: 2019/05/31 ~ 2019/08/31
+
 ## 手順
 1. データ詳細テーブルと変換器を生成する。
 ```
@@ -18,7 +23,18 @@ $ python expN.py
 
 3. アンサンブル
 
-
+4. 提出(test_prediction.csvにする必要あり)
+```
+$ zip yoursubmission.zip test_prediction.csv
+updating: test_prediction.csv (deflated 79%)
+$ unzip -l yoursubmission.zip
+Archive:  yoursubmission.zip
+  Length      Date    Time    Name
+---------  ---------- -----   ----
+   357417  03-22-2019 10:17   test_prediction.csv
+---------                     -------
+   357417                     1 file
+```
 
 
 ## 結果
@@ -37,7 +53,7 @@ $ python expN.py
 
 ## メモ
 - resnet18,batch 128で16m / epoch
-
+- margin augmentation
 
 
 ## アイデア
@@ -45,12 +61,10 @@ $ python expN.py
 
 
 ## TODO
-- Predictionのスクリプト作成
-- logの追加
-- Dropout(p=0.3, 0.4, 0.5)の検証
-- Mixup(beta=0.2, 0.5)の検証
-- RICAP(beta=0.3)の検証
-- ICAP(beta=0.5)の検証
+- Encoder-Decoder ResNet
+- margin augment
+- Mixup
+- GCP環境構築
 
 
 ## Model(backbone)
@@ -72,11 +86,11 @@ $ python expN.py
 - PyramidNet
 - DenseNet-BC
 
+
 ## Technique
 - Shake-Shake
 - Shake-Drop
 - Stochastic Depth
-- Dropout
 - pruning
 - distillation
 - Negative Sampling
@@ -84,11 +98,17 @@ $ python expN.py
 - ArcFace
 - CosFace
 - Pseudo-Label
+- Dropout(p=0.3, 0.4, 0.5)
+- Mixup(beta=0.2, 0.5)
+- RICAP(beta=0.3)
+- ICAP(beta=0.5)
+
 
 ## Scheduler
 - Cosine Annearing
 - WarmUp
 - Step
+
 
 ## Optimizer
 - momentum SGD
@@ -96,6 +116,7 @@ $ python expN.py
 - Adam
 - RMSProp
 - Adabound
+
 
 ## Loss Function
 - Cross Entropy Loss
