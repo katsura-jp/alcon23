@@ -41,6 +41,7 @@ $ python expN.py
 
 ## TODO
 - Predictionのスクリプト作成
+- logの追加
 - Dropout(p=0.3, 0.4, 0.5)の検証
 - Mixup(beta=0.2, 0.5)の検証
 - RICAP(beta=0.3)の検証
@@ -73,6 +74,26 @@ $ python expN.py
 - distillation
 - Negative Sampling
 - AutoAugmentation
+
+
+## Scheduler
+- Cosine Annearing
+- WarmUp
+- Step
+
+## Optimizer
+- momentum SGD
+- Nestrov momentum SGD
+- Adam
+- RMSProp
+- Adabound
+
+## Loss Function
+- Cross Entropy Loss
+- Binary Cross Entropy Loss
+- Focal Loss
+- Focal Travesky Loss
+- Lovasz Loss
 
 
 ## Ensemble
