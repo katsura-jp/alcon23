@@ -58,9 +58,9 @@ def main():
     print('valid dataset size: {}'.format(len(valid_dataset)))
 
     # Dataloader
-    train_dataloader = DataLoader(train_dataset, batch_size=param['batch size'],num_workers=0, #num_workers=param['thread'],
+    train_dataloader = DataLoader(train_dataset, batch_size=param['batch size'],num_workers=param['thread'],
                                   pin_memory=False, drop_last=False)
-    valid_dataloader = DataLoader(valid_dataset, batch_size=param['batch size'], num_workers=0,
+    valid_dataloader = DataLoader(valid_dataset, batch_size=param['batch size'], num_workers=param['thread'],
                                   pin_memory=False, drop_last=False)
 
     print('train loader size: {}'.format(len(train_dataloader)))
