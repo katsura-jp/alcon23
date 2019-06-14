@@ -1,15 +1,28 @@
-batch size: 1024
+batch size: 256
 device: cuda:0
 dataroot: /mnt/hdd1/alcon2019/input/dataset/
 vocabdir: /mnt/hdd1/alcon2019/input/vocab/
 tabledir: /mnt/hdd1/alcon2019/input/tables/
-dropout: 0.5
+save path: /mnt/hdd1/alcon2019/
+GPU: 4
+thread: 48
 epoch: 60
+debug: False
+
+#batch size: 4
+#device: cpu
+#dataroot: ../input/dataset/
+#vocabdir: ../input/vocab/
+#tabledir: ../input/tables/
+#save path: ../tmp/
+#GPU: 0
+#thread: 2
+#epoch: 1
+#debug: True
+
+dropout: 0.5
 optim: sgd
 lr: 0.1
 scheduler: torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[15, 30, 40], gamma=0.1)
-thread: 48
 seed: 2019
 fold: [0,1,2,3,4]
-save path: /mnt/hdd1/alcon2019/
-GPU: 4

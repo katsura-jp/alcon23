@@ -32,13 +32,13 @@ def main():
 
     handler_format = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 
-    stream_handler = logging.StreamHandler()
-    stream_handler.setLevel(logging.DEBUG)
-    stream_handler.setFormatter(handler_format)
-    logger.addHandler(stream_handler)
+    # stream_handler = logging.StreamHandler()
+    # stream_handler.setLevel(logging.DEBUG)
+    # stream_handler.setFormatter(handler_format)
+    # logger.addHandler(stream_handler)
 
 
-    # print('{}-{}-{} {}:{}:{}'.format(now.year, now.month, now.day, now.hour, now.minute, now.second))
+    print('{}-{}-{} {}:{}:{}'.format(now.year, now.month, now.day, now.hour, now.minute, now.second))
     with open('../params/exp{}.yaml'.format(EXP_NO), "r+") as f:
         param = yaml.load(f, Loader=yaml.FullLoader)
     param['date'] = now_date
@@ -47,11 +47,11 @@ def main():
     if torch.cuda.is_available():
         torch.backends.cudnn.benchmark = True
 
-
+    local_cv = dict()
 
     for fold in param['fold']:
         # /mnt/hdd1/alcon2019/ + exp0/ + 2019-mm-dd_hh-mm-ss/ + foldN
-        outdir = os.path.join(param['save path'], str(os.path.basename(__file__).split('.')[-2]) ,now_date, 'fold{}'.format(fold))
+        outdir = os.path.join(param['save path'], EXP_NAME ,now_date, 'fold{}'.format(fold))
         if os.path.exists(param['save path']):
             os.makedirs(outdir, exist_ok=True)
         else:
@@ -122,6 +122,7 @@ def main():
         model = model.to(param['device'])
         if param['GPU'] > 1:
             model = nn.DataParallel(model)
+
         loss_fn = nn.CrossEntropyLoss().to(param['device'])
         eval_fn = accuracy_one_character
 
@@ -191,6 +192,10 @@ def main():
         writer.export_scalars_to_json(os.path.join(outdir, 'history.json'))
         writer.close()
 
+
+        local_cv['fold{}'.format(fold)] = {'accuracy' : max_3char_acc, 'valid_size' : len(valid_dataset)}
+
+
         del train_dataset, valid_dataset
         del train_dataloader, valid_dataloader
         del scheduler, optimizer
@@ -233,7 +238,7 @@ def main():
 
     print('======== Load Vector =========')
     for i, fold in enumerate(mb):
-        outdir = os.path.join(param['save path'], str(os.path.basename(__file__).split('.')[-2]), now_date,'fold{}'.format(fold))
+        outdir = os.path.join(param['save path'], EXP_NAME, now_date,'fold{}'.format(fold))
         prediction = torch.load(os.path.join(outdir, 'prediction.pth'))
         # prediction is list
         # prediction[0] = {'ID' : 0, 'logit' torch.tensor, ...}
@@ -244,7 +249,28 @@ def main():
             for preds in progress_bar(prediction, parent=mb):
                 prediction_dict[preds['ID']] += preds['logit'] / len(param['fold'])
 
-    outdir = os.path.join(param['save path'], str(os.path.basename(__file__).split('.')[-2]), now_date)
+    outdir = os.path.join(param['save path'], EXP_NAME, now_date)
+
+    file_handler = logging.FileHandler(os.path.join(outdir, 'result.log'))
+    file_handler.setLevel(logging.DEBUG)
+    file_handler.setFormatter(handler_format)
+    logger.addHandler(file_handler)
+    logger.info(' ==========  RESULT  ========== \n')
+
+    cv = 0.0
+    train_data_size = 0
+    for fold in param['fold']:
+        acc = local_cv['fold{}'.format(fold)]['accuracy']
+        valid_size = local_cv['fold{}'.format(fold)]['valid_size']
+        train_data_size += valid_size
+        logger.info(' fold {} :  {:.3%} \n'.format(fold, acc))
+        cv += acc * valid_size
+    logger.info(' Local CV : {:.3%} \n'.format(cv / train_data_size))
+    logger.info(' ============================== \n')
+
+    logger.removeHandler(file_handler)
+
+
     torch.save(prediction_dict, os.path.join(outdir, 'prediction.pth'))
 
     print('======== make submittion file =========')
@@ -263,7 +289,7 @@ def main():
     pd.DataFrame(submit_list).sort_values('ID').set_index('ID').to_csv(os.path.join(outdir, 'test_prediction.csv'))
 
     import zipfile
-    with zipfile.ZipFile(os.path.join(outdir,'submit_{}_{}.zip'.format(str(os.path.basename(__file__).split('.')[-2]), now_date)), 'w') as zf:
+    with zipfile.ZipFile(os.path.join(outdir,'submit_{}_{}.zip'.format(EXP_NAME, now_date)), 'w') as zf:
         zf.write(os.path.join(outdir, 'test_prediction.csv'))
 
     print('success!')

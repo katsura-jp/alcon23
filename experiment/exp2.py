@@ -1,10 +1,10 @@
 import os
 import sys
-sys.path.append('../')
 import gc
 import yaml
 import datetime
 import logging
+sys.path.append('../')
 
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -20,7 +20,9 @@ from src.utils import *
 from src.collates import *
 from train_methods import *
 
+
 EXP_NO = os.path.basename(__file__).split('.')[0][3:]
+EXP_NAME = str(os.path.basename(__file__).split('.')[-2])
 
 def main():
     now = datetime.datetime.now()
@@ -32,10 +34,10 @@ def main():
 
     handler_format = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 
-    stream_handler = logging.StreamHandler()
-    stream_handler.setLevel(logging.DEBUG)
-    stream_handler.setFormatter(handler_format)
-    logger.addHandler(stream_handler)
+    # stream_handler = logging.StreamHandler()
+    # stream_handler.setLevel(logging.DEBUG)
+    # stream_handler.setFormatter(handler_format)
+    # logger.addHandler(stream_handler)
 
 
     # print('{}-{}-{} {}:{}:{}'.format(now.year, now.month, now.day, now.hour, now.minute, now.second))
@@ -47,11 +49,11 @@ def main():
     if torch.cuda.is_available():
         torch.backends.cudnn.benchmark = True
 
-
+    local_cv = dict()
 
     for fold in param['fold']:
         # /mnt/hdd1/alcon2019/ + exp0/ + 2019-mm-dd_hh-mm-ss/ + foldN
-        outdir = os.path.join(param['save path'], str(os.path.basename(__file__).split('.')[-2]) ,now_date, 'fold{}'.format(fold))
+        outdir = os.path.join(param['save path'], EXP_NAME ,now_date, 'fold{}'.format(fold))
         if os.path.exists(param['save path']):
             os.makedirs(outdir, exist_ok=True)
         else:
@@ -68,18 +70,29 @@ def main():
         logger.debug('{}-{}-{} {}:{}:{}'.format(now.year, now.month, now.day, now.hour, now.minute, now.second))
         # Dataset
 
-        train_dataset = AlconDataset(df=get_train_df(param['tabledir']).query('valid != @fold'),
-                                     augmentation=get_train_augmentation(),
-                                     datadir=os.path.join(param['dataroot'],'train','imgs'), mode='train')
+        param['batch size'] = max(param['batch size'], param['batch size'] * param['GPU'])
 
-        valid_dataset = AlconDataset(df=get_train_df(param['tabledir']).query('valid == @fold'),
-                                     augmentation=get_test_augmentation(),
-                                     datadir=os.path.join(param['dataroot'],'train','imgs'), mode='valid')
+        if param['debug']:
+            train_dataset = AlconDataset(df=get_train_df(param['tabledir']).query('valid != @fold').iloc[:param['batch size']],
+                                         augmentation=get_train_augmentation(),
+                                         datadir=os.path.join(param['dataroot'],'train','imgs'), mode='train')
+
+            valid_dataset = AlconDataset(df=get_train_df(param['tabledir']).query('valid == @fold').iloc[:param['batch size']],
+                                         augmentation=get_test_augmentation(),
+                                         datadir=os.path.join(param['dataroot'],'train','imgs'), mode='valid')
+        else:
+            train_dataset = AlconDataset(df=get_train_df(param['tabledir']).query('valid != @fold'),
+                                         augmentation=get_train_augmentation(),
+                                         datadir=os.path.join(param['dataroot'], 'train', 'imgs'), mode='train')
+
+            valid_dataset = AlconDataset(df=get_train_df(param['tabledir']).query('valid == @fold'),
+                                         augmentation=get_test_augmentation(),
+                                         datadir=os.path.join(param['dataroot'], 'train', 'imgs'), mode='valid')
+
         logger.debug('train dataset size: {}'.format(len(train_dataset)))
         logger.debug('valid dataset size: {}'.format(len(valid_dataset)))
 
         # Dataloader
-        param['batch size'] = max(param['batch size'], param['batch size']*param['GPU'])
 
         train_dataloader = DataLoader(train_dataset, batch_size=param['batch size'], num_workers=param['thread'],
                                       pin_memory=False, drop_last=False)
@@ -111,6 +124,7 @@ def main():
         model = model.to(param['device'])
         if param['GPU'] > 1:
             model = nn.DataParallel(model)
+
         loss_fn = torch.nn.CrossEntropyLoss().to(param['device'])
         eval_fn = accuracy
 
@@ -180,6 +194,8 @@ def main():
         writer.export_scalars_to_json(os.path.join(outdir, 'history.json'))
         writer.close()
 
+        local_cv['fold{}'.format(fold)] = {'accuracy' : max_3char_acc, 'valid_size' : len(valid_dataset)}
+
         del train_dataset, valid_dataset
         del train_dataloader, valid_dataloader
         del scheduler, optimizer
@@ -190,12 +206,18 @@ def main():
         logger.debug('load weight  :  {}'.format(os.path.join(outdir, 'best_3acc.pth')))
         model.load_state_dict(torch.load(os.path.join(outdir, 'best_3acc.pth')))
 
-        test_dataset = AlconDataset(df=get_test_df(param['tabledir']).iloc[:4],
-                                    augmentation=get_test_augmentation(),
-                                    datadir=os.path.join(param['dataroot'], 'test', 'imgs'), mode='test')
+        if param['debug']:
+            test_dataset = AlconDataset(df=get_test_df(param['tabledir']).iloc[:param['batch size']],
+                                        augmentation=get_test_augmentation(),
+                                        datadir=os.path.join(param['dataroot'], 'test', 'imgs'), mode='test')
+        else:
+            test_dataset = AlconDataset(df=get_test_df(param['tabledir']),
+                                        augmentation=get_test_augmentation(),
+                                        datadir=os.path.join(param['dataroot'], 'test', 'imgs'), mode='test')
 
         test_dataloader = DataLoader(test_dataset, batch_size=param['batch size'], num_workers=param['thread'],
                                      pin_memory=False, drop_last=False)
+
         logger.debug('test dataset size: {}'.format(len(test_dataset)))
         logger.debug('test loader size: {}'.format(len(test_dataloader)))
 
@@ -216,7 +238,7 @@ def main():
 
     print('======== Load Vector =========')
     for i, fold in enumerate(mb):
-        outdir = os.path.join(param['save path'], str(os.path.basename(__file__).split('.')), now_date,'fold{}'.format(fold))
+        outdir = os.path.join(param['save path'], EXP_NAME, now_date,'fold{}'.format(fold))
         prediction = torch.load(os.path.join(outdir, 'prediction.pth'))
         # prediction is list
         # prediction[0] = {'ID' : 0, 'logit' torch.tensor, ...}
@@ -227,7 +249,27 @@ def main():
             for preds in progress_bar(prediction, parent=mb):
                 prediction_dict[preds['ID']] += preds['logit'] / len(param['fold'])
 
-    outdir = os.path.join(param['save path'], str(os.path.basename(__file__).split('.')[-2]), now_date)
+    outdir = os.path.join(param['save path'], EXP_NAME, now_date)
+
+    file_handler = logging.FileHandler(os.path.join(outdir, 'result.log'))
+    file_handler.setLevel(logging.DEBUG)
+    file_handler.setFormatter(handler_format)
+    logger.addHandler(file_handler)
+    logger.info(' ==========  RESULT  ========== \n')
+
+    cv = 0.0
+    train_data_size = 0
+    for fold in param['fold']:
+        acc = local_cv['fold{}'.format(fold)]['accuracy']
+        valid_size = local_cv['fold{}'.format(fold)]['valid_size']
+        train_data_size += valid_size
+        logger.info(' fold {} :  {:.3%} \n'.format(fold, acc))
+        cv += acc * valid_size
+    logger.info(' Local CV : {:.3%} \n'.format(cv / train_data_size))
+    logger.info(' ============================== \n')
+
+    logger.removeHandler(file_handler)
+
     torch.save(prediction_dict, os.path.join(outdir, 'prediction.pth'))
 
     print('======== make submittion file =========')
@@ -246,7 +288,7 @@ def main():
     pd.DataFrame(submit_list).sort_values('ID').set_index('ID').to_csv(os.path.join(outdir, 'test_prediction.csv'))
 
     import zipfile
-    with zipfile.ZipFile('submit_{}_{}.zip'.format(str(os.path.basename(__file__).split('.')[-2]), now_date), 'w') as zf:
+    with zipfile.ZipFile(os.path.join(outdir,'submit_{}_{}.zip'.format(EXP_NAME, now_date)), 'w') as zf:
         zf.write(os.path.join(outdir, 'test_prediction.csv'))
 
     print('success!')
