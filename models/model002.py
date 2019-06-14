@@ -48,7 +48,7 @@ class SE_ResNextLSTM(nn.Module):
                         torch.zeros(1, batch, self.hidden_size, dtype=x.dtype, device=x.device))
 
         x, _ = self.lstm(x, hidden)
-        x = self.fc(x.contiguous().view(-1, x.size(2))).view(batch, seq, -1)
+        x = self.fc(x.contiguous().view(-1, x.size(2)))
         return x
 
     def forward(self, x):

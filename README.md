@@ -53,18 +53,17 @@ Archive:  yoursubmission.zip
 
 ## メモ
 - resnet18,batch 128で16m / epoch
-- margin augmentation
+
 
 
 ## アイデア
 - backbone encoder + LSTM
-
+- margin augmentation
 
 ## TODO
 - Encoder-Decoder ResNet
 - margin augment
 - Mixup
-- GCP環境構築
 
 
 ## Model(backbone)
