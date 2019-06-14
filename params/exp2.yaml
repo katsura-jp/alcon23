@@ -12,4 +12,4 @@ thread: 48
 seed: 2019
 fold: [0,1,2,3,4]
 save path: /mnt/hdd1/alcon2019/
-parallel: True
+GPU: 4

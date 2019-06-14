@@ -71,6 +71,7 @@ def main():
         train_dataset = AlconDataset(df=get_train_df(param['tabledir']).query('valid != @fold'),
                                      augmentation=get_train_augmentation(),
                                      datadir=os.path.join(param['dataroot'],'train','imgs'), mode='train')
+
         valid_dataset = AlconDataset(df=get_train_df(param['tabledir']).query('valid == @fold'),
                                      augmentation=get_test_augmentation(),
                                      datadir=os.path.join(param['dataroot'],'train','imgs'), mode='valid')
@@ -78,6 +79,8 @@ def main():
         logger.debug('valid dataset size: {}'.format(len(valid_dataset)))
 
         # Dataloader
+        param['batch size'] = max(param['batch size'], param['batch size']*param['GPU'])
+
         train_dataloader = DataLoader(train_dataset, batch_size=param['batch size'], num_workers=param['thread'],
                                       pin_memory=False, drop_last=False)
         valid_dataloader = DataLoader(valid_dataset, batch_size=param['batch size'], num_workers=param['thread'],
@@ -106,7 +109,7 @@ def main():
 
 
         model = model.to(param['device'])
-        if param['parallel']:
+        if param['GPU'] > 1:
             model = nn.DataParallel(model)
         loss_fn = torch.nn.CrossEntropyLoss().to(param['device'])
         eval_fn = accuracy
@@ -187,7 +190,7 @@ def main():
         logger.debug('load weight  :  {}'.format(os.path.join(outdir, 'best_3acc.pth')))
         model.load_state_dict(torch.load(os.path.join(outdir, 'best_3acc.pth')))
 
-        test_dataset = AlconDataset(df=get_test_df(param['tabledir']),
+        test_dataset = AlconDataset(df=get_test_df(param['tabledir']).iloc[:4],
                                     augmentation=get_test_augmentation(),
                                     datadir=os.path.join(param['dataroot'], 'test', 'imgs'), mode='test')
 
@@ -213,16 +216,19 @@ def main():
 
     print('======== Load Vector =========')
     for i, fold in enumerate(mb):
-        outdir = os.path.join(param['save path'], str(os.path.basename(__file__).split('.')[-2]), now_date,'fold{}'.format(fold))
+        outdir = os.path.join(param['save path'], str(os.path.basename(__file__).split('.')), now_date,'fold{}'.format(fold))
         prediction = torch.load(os.path.join(outdir, 'prediction.pth'))
         # prediction is list
         # prediction[0] = {'ID' : 0, 'logit' torch.tensor, ...}
         if i == 0:
-            for preds in progress_bar(prediction, parents=mb):
+            for preds in progress_bar(prediction, parent=mb):
                 prediction_dict[preds['ID']] = preds['logit'] / len(param['fold'])
         else:
-            for preds in progress_bar(prediction, parents=mb):
+            for preds in progress_bar(prediction, parent=mb):
                 prediction_dict[preds['ID']] += preds['logit'] / len(param['fold'])
+
+    outdir = os.path.join(param['save path'], str(os.path.basename(__file__).split('.')[-2]), now_date)
+    torch.save(prediction_dict, os.path.join(outdir, 'prediction.pth'))
 
     print('======== make submittion file =========')
     vocab = get_vocab(param['vocabdir'])
@@ -235,8 +241,8 @@ def main():
         submit_dict["Unicode2"] = vocab['index2uni'][preds[1]]
         submit_dict["Unicode3"] = vocab['index2uni'][preds[2]]
         submit_list.append(submit_dict)
+    print()
 
-    outdir = os.path.join(param['save path'], str(os.path.basename(__file__).split('.')[-2]), now_date)
     pd.DataFrame(submit_list).sort_values('ID').set_index('ID').to_csv(os.path.join(outdir, 'test_prediction.csv'))
 
     import zipfile
