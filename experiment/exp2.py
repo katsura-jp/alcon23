@@ -68,10 +68,10 @@ def main():
         logger.debug('{}-{}-{} {}:{}:{}'.format(now.year, now.month, now.day, now.hour, now.minute, now.second))
         # Dataset
 
-        train_dataset = AlconDataset(df=get_train_df().query('valid != @fold'),
+        train_dataset = AlconDataset(df=get_train_df(param['tabledir']).query('valid != @fold'),
                                      augmentation=get_train_augmentation(),
                                      datadir=os.path.join(param['dataroot'],'train','imgs'), mode='train')
-        valid_dataset = AlconDataset(df=get_train_df().query('valid == @fold'),
+        valid_dataset = AlconDataset(df=get_train_df(param['tabledir']).query('valid == @fold'),
                                      augmentation=get_test_augmentation(),
                                      datadir=os.path.join(param['dataroot'],'train','imgs'), mode='valid')
         logger.debug('train dataset size: {}'.format(len(train_dataset)))
@@ -187,7 +187,7 @@ def main():
         logger.debug('load weight  :  {}'.format(os.path.join(outdir, 'best_3acc.pth')))
         model.load_state_dict(torch.load(os.path.join(outdir, 'best_3acc.pth')))
 
-        test_dataset = AlconDataset(df=get_test_df(),
+        test_dataset = AlconDataset(df=get_test_df(param['tabledir']),
                                     augmentation=get_test_augmentation(),
                                     datadir=os.path.join(param['dataroot'], 'test', 'imgs'), mode='test')
 
@@ -225,7 +225,7 @@ def main():
                 prediction_dict[preds['ID']] += preds['logit'] / len(param['fold'])
 
     print('======== make submittion file =========')
-    vocab = get_vocab()
+    vocab = get_vocab(param['vocabdir'])
     submit_list = list()
     for ID, logits in progress_bar(prediction_dict.items()):
         submit_dict = dict()

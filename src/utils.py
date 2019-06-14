@@ -6,14 +6,14 @@ import numpy as np
 import random
 
 
-def get_vocab():
-    with open('../input/vocab/char2unicode.json', 'r') as f:
+def get_vocab(path='../input/vocab'):
+    with open(os.path.join(path, 'char2unicode.json'), 'r') as f:
         char2uni = json.load(f)
-    with open('../input/vocab/unicode2char.json', 'r') as f:
+    with open(os.path.join(path, 'unicode2char.json'), 'r') as f:
         uni2char = json.load(f)
-    with open('../input/vocab/index2unicode.json', 'r') as f:
+    with open(os.path.join(path, 'index2unicode.json'), 'r') as f:
         index2uni = json.load(f)
-    with open('../input/vocab/unicode2index.json', 'r') as f:
+    with open(os.path.join(path, 'unicode2index.json'), 'r') as f:
         uni2index = json.load(f)
 
     return {'char2uni': char2uni,
@@ -22,14 +22,14 @@ def get_vocab():
             'uni2index': uni2index}
 
 
-def get_train_df():
-    return pd.read_csv('../input/tables/train.csv')
+def get_train_df(path='../input/tables'):
+    return pd.read_csv(os.path.join(path, 'train.csv'))
 
-def get_test_df():
-    return pd.read_csv('../input/tables/test.csv')
+def get_test_df(path='../input/tables'):
+    return pd.read_csv(os.path.join(path, 'test.csv'))
 
-def get_char_df():
-    return pd.read_csv('../input/tables/character.csv')
+def get_char_df(path='../input/tables'):
+    return pd.read_csv(os.path.join(path, 'character.csv'))
 
 def seed_setting(seed=1029):
     random.seed(seed)

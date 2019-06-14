@@ -1,6 +1,8 @@
 batch size: 1024
 device: cuda:0
 dataroot: /mnt/hdd1/alcon2019/input/dataset/
+vocabdir: /mnt/hdd1/alcon2019/input/vocab/
+tabledir: /mnt/hdd1/alcon2019/input/tables/
 dropout: 0.5
 epoch: 60
 optim: sgd

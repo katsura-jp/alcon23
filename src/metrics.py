@@ -14,6 +14,13 @@ def accuracy(pred, label, mean=True):
         return (pred.argmax(dim=1) == label)
 
 
+def accuracy_one_character(pred, label, mean=True):
+    if mean:
+        return (pred.argmax(dim=2) == label).float().mean(dim=[0, 1])
+    else:
+        return (pred.argmax(dim=2) == label).float().mean(dim=1)
+
+
 def accuracy_three_character(pred, label, mean=True):
     '''
     :param pred: torch.tensor(batch_size, 3, class)
@@ -24,4 +31,4 @@ def accuracy_three_character(pred, label, mean=True):
     if mean:
         return (pred.argmax(dim=2) == label).all(dim=1).type(torch.float32).mean()
     else:
-        (pred.argmax(dim=2) == label).all(dim=1)
+        return (pred.argmax(dim=2) == label).all(dim=1)
