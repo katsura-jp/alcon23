@@ -53,8 +53,21 @@ Archive:  yoursubmission.zip
 
 ## メモ
 - resnet18,batch 128で16m / epoch
+- se_resnext101+LSTM(unidirect)でK80(VRAM 11GB) 2枚だと(336x224)でbatch 16/GPUでOOM。4~ hour/epoch
+- 30epochあれば十分かもしれない
 
+### 最終的なパイプライン
+1. KANAデータで事前学習(resnet, se_resnextあたり) (6月中)
+2. low resolutionで学習,推論 (7月末まで)
+3. Pseudo Labeling (7月末まで)
+4. high resolution + SSE で学習、推論 (8/28まで)
+5. Post Processing(Ensemble) (8/31まで)
 
+#### 学習時のテクニック
+- Dropout
+- mixup
+- optimizer: adam or sgd
+- SGDR 
 
 ## アイデア
 - backbone encoder + LSTM
@@ -138,4 +151,9 @@ Archive:  yoursubmission.zip
 - 調和平均
 - 幾何平均
 
-
+## Image Resolution
+1. 336 x 224  <--- 384 x 256
+2. 168 x 112  <--- 192 x 128
+3. 128 x 128  <--- 150 x 150
+4. 84  x 56   <--- 96  x 64
+5. 64  x 64   <--- 72  x 72
