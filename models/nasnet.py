@@ -606,7 +606,7 @@ class NASNetALarge(nn.Module):
         return x
 
 
-def nasnetalarge(num_classes=1001, pretrained='imagenet'):
+def _nasnetalarge(num_classes=1001, pretrained='imagenet'):
     r"""NASNetALarge model architecture from the
     `"NASNet" <https://arxiv.org/abs/1707.07012>`_ paper.
     """
@@ -633,6 +633,11 @@ def nasnetalarge(num_classes=1001, pretrained='imagenet'):
         model.std = settings['std']
     else:
         model = NASNetALarge(num_classes=num_classes)
+    return model
+
+def nasnetalarge(num_classes=48):
+    model = _nasnetalarge(num_classes=1000, pretrained='imagenet')
+    model = nn.Linear(model.last_linear.in_features, num_classes)
     return model
 
 

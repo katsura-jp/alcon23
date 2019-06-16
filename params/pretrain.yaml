@@ -1,0 +1,12 @@
+model: resnet18
+dataroot: ../input/dataset/train_kana/
+tabledir: ../input/tables/
+vocabdir: ../input/vocab/
+save path: ../tmp/
+batch size: 4
+device: cpu
+GPU: 0
+thread: 2
+dropout: 0.5
+seed: 2019
+debug: False
