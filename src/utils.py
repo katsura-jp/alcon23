@@ -39,6 +39,18 @@ def seed_setting(seed=1029):
     torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.deterministic = True
 
+def get_resolution(n=1):
+    if n == 1:
+        return 336, 224, 384, 256
+    elif n == 2:
+        return 168 , 112  ,192 ,128
+    elif n == 3:
+        return 128 , 128 ,150, 150
+    elif n == 4:
+        return 84, 56, 96, 64
+    elif n == 5:
+        return 64, 64 , 72 ,72
+
 
 def mixup_data(x, y, alpha=0.2, device="cpu"):
     '''Returns mixed inputs, pairs of targets, and lambda'''
