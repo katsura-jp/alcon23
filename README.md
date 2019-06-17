@@ -55,6 +55,9 @@ Archive:  yoursubmission.zip
 - resnet18,batch 128で16m / epoch
 - se_resnext101+LSTM(unidirect)でK80(VRAM 11GB) 2枚だと(336x224)でbatch 16/GPUでOOM。4~ hour/epoch
 - 30epochあれば十分かもしれない
+- SSE: 10epoch(SGDR) + 5epoch * 4shot = 30epoch
+- HorizonFlipでも行けるかもしれない(反転しても同じものは存在しないため)
+- 残り1サブのみなので注意
 
 ### 最終的なパイプライン
 1. KANAデータで事前学習(resnet, se_resnextあたり) (6月中)

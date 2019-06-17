@@ -196,12 +196,53 @@ def main():
 
         output_list = pred_alcon(model, test_dataloader, param['device'])
         torch.save(output_list, os.path.join(outdir, 'prediction.pth'))
-        pd.DataFrame(output_list).drop('logit', axis=1).sort_values('ID').set_index('ID').to_csv(os.path.join(outdir, 'submission.csv'))
+        pd.DataFrame(output_list).drop('logit', axis=1).sort_values('ID').set_index('ID').to_csv(os.path.join(outdir, 'test_prediction.csv'))
         logger.debug('success!')
         logger.removeHandler(file_handler)
 
         del test_dataset, test_dataloader
         gc.collect()
+
+
+    # Ensemble
+    print('======== Ensemble phase =========')
+    prediction_dict = dict()
+    mb = master_bar(param['fold'])
+
+    print('======== Load Vector =========')
+    for i, fold in enumerate(mb):
+        outdir = os.path.join(param['save path'], str(os.path.basename(__file__).split('.')[-2]), now_date,'fold{}'.format(fold))
+        prediction = torch.load(os.path.join(outdir, 'prediction.pth'))
+        # prediction is list
+        # prediction[0] = {'ID' : 0, 'logit' torch.tensor, ...}
+        if i == 0:
+            for preds in progress_bar(prediction, parents=mb):
+                prediction_dict[preds['ID']] = preds['logit'] / len(param['fold'])
+        else:
+            for preds in progress_bar(prediction, parents=mb):
+                prediction_dict[preds['ID']] += preds['logit'] / len(param['fold'])
+
+    print('======== make submittion file =========')
+    vocab = get_vocab()
+    submit_list = list()
+    for ID, logits in progress_bar(prediction_dict.items()):
+        submit_dict = dict()
+        submit_dict["ID"] = ID
+        preds = logits.softmax(dim=1).argmax(dim=1)
+        submit_dict["Unicode1"] = vocab['index2uni'][preds[0]]
+        submit_dict["Unicode2"] = vocab['index2uni'][preds[1]]
+        submit_dict["Unicode3"] = vocab['index2uni'][preds[2]]
+        submit_list.append(submit_dict)
+
+    outdir = os.path.join(param['save path'], str(os.path.basename(__file__).split('.')[-2]), now_date)
+    pd.DataFrame(submit_list).sort_values('ID').set_index('ID').to_csv(os.path.join(outdir, 'test_prediction.csv'))
+
+    import zipfile
+    with zipfile.ZipFile('submit_{}_{}.zip'.format(str(os.path.basename(__file__).split('.')[-2]), now_date), 'w') as zf:
+        zf.write(os.path.join(outdir, 'test_prediction.csv'))
+
+    print('success!')
+
 
 if __name__ =='__main__':
     main()

@@ -10,3 +10,4 @@ thread: 2
 dropout: 0.5
 seed: 2019
 debug: False
+resolution: 1
