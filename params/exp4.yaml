@@ -1,0 +1,30 @@
+batch size: 32
+device: cuda:0
+dataroot: /mnt/hdd1/alcon2019/input/dataset/
+vocabdir: /mnt/hdd1/alcon2019/input/vocab/
+tabledir: /mnt/hdd1/alcon2019/input/tables/
+save path: /mnt/hdd1/alcon2019/
+GPU: 1
+thread: 14
+epoch: 40
+debug: False
+
+#batch size: 4
+#device: cpu
+#dataroot: ../input/dataset/
+#vocabdir: ../input/vocab/
+#tabledir: ../input/tables/
+#save path: ../tmp/
+#GPU: 0
+#thread: 2
+#epoch: 1
+#debug: True
+
+dropout: 0.5
+optim: sgd
+lr: 0.1
+scheduler: torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[15, 25, 35], gamma=0.1)
+seed: 2019
+fold: [0,1,2,3,4]
+load weight: /mnt/hdd1/alcon2019/pretrain/resnet50/2019-06-17_06-00-45/best_loss.pth
+resolution: 2

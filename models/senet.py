@@ -411,7 +411,7 @@ def se_resnet101(num_classes=48, pretrained='imagenet', dropout=None):
                   num_classes=1000)
     if pretrained is not None:
         settings = pretrained_settings['se_resnet101'][pretrained]
-        initialize_pretrained_model(model,1000, settings)
+        initialize_pretrained_model(model, 1000, settings)
     model.last_linear = nn.Linear(model.last_linear.in_features, num_classes)
     return model
 
