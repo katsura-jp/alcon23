@@ -387,7 +387,7 @@ def senet154(num_classes=48, pretrained='imagenet', dropout=0.2):
                   dropout_p=0.2, num_classes=1000)
     if pretrained is not None:
         settings = pretrained_settings['senet154'][pretrained]
-        initialize_pretrained_model(model, num_classes, settings)
+        initialize_pretrained_model(model, 1000, settings)
     model.last_linear = nn.Linear(model.last_linear.in_features, num_classes)
     return model
 
@@ -399,7 +399,7 @@ def se_resnet50(num_classes=48, pretrained='imagenet', dropout=None):
                   num_classes=1000)
     if pretrained is not None:
         settings = pretrained_settings['se_resnet50'][pretrained]
-        initialize_pretrained_model(model, num_classes, settings)
+        initialize_pretrained_model(model, 1000, settings)
     model.last_linear = nn.Linear(model.last_linear.in_features, num_classes)
     return model
 
@@ -411,7 +411,7 @@ def se_resnet101(num_classes=48, pretrained='imagenet', dropout=None):
                   num_classes=1000)
     if pretrained is not None:
         settings = pretrained_settings['se_resnet101'][pretrained]
-        initialize_pretrained_model(model, num_classes, settings)
+        initialize_pretrained_model(model, 1000, settings)
     model.last_linear = nn.Linear(model.last_linear.in_features, num_classes)
     return model
 
@@ -423,7 +423,7 @@ def se_resnet152(num_classes=48, pretrained='imagenet', dropout=None):
                   num_classes=1000)
     if pretrained is not None:
         settings = pretrained_settings['se_resnet152'][pretrained]
-        initialize_pretrained_model(model, num_classes, settings)
+        initialize_pretrained_model(model, 1000, settings)
     model.last_linear = nn.Linear(model.last_linear.in_features, num_classes)
     return model
 
@@ -435,7 +435,7 @@ def se_resnext50_32x4d(num_classes=48, pretrained='imagenet', dropout=None):
                   num_classes=1000)
     if pretrained is not None:
         settings = pretrained_settings['se_resnext50_32x4d'][pretrained]
-        initialize_pretrained_model(model, num_classes, settings)
+        initialize_pretrained_model(model, 1000, settings)
     model.last_linear = nn.Linear(model.last_linear.in_features, num_classes)
     return model
 
@@ -447,6 +447,6 @@ def se_resnext101_32x4d(num_classes=48, pretrained='imagenet', dropout=None):
                   num_classes=1000)
     if pretrained is not None:
         settings = pretrained_settings['se_resnext101_32x4d'][pretrained]
-        initialize_pretrained_model(model, num_classes, settings)
+        initialize_pretrained_model(model, 1000, settings)
     model.last_linear = nn.Linear(model.last_linear.in_features, num_classes)
     return model
