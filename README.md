@@ -38,17 +38,17 @@ Archive:  yoursubmission.zip
 
 
 ## 結果
-| exp No. | Local CV | Public | Private | comment |
-| ------: | -------: | -----: | ------: | :------ |
-| 0       |  87.391% |        |         | test example. only fold0. |
-| 1       |          |        |         | simple resnet18.  |
-| 2       |          |        |         |         |
-| 3       |          |        |         |         |
-| 4       |          |        |         |         |
-| 5       |          |        |         |         |
-| 6       |          |        |         |         |
-| 7       |          |        |         |         |
-| 8       |          |        |         |         |
+| exp No. | Local CV | Public | Private | model   | resolution | comment |
+| ------: | -------: | -----: | ------: | :------ | ------:    | :------ |
+| 0       |  87.391% |        |         |         |            | test example. only fold0. |
+| 1       |          |        |         | resnet18| 1          |         |
+| 2       |          |        |         |         |            |         |
+| 3       |          |        |         |         |            |         |
+| 4       |          |        |         | ResNet50+LSTM(bi-directional) | 2 | |
+| 5       |          |        |         |         |            |         |
+| 6       |          |        |         |         |            |         |
+| 7       |          |        |         |         |            |         |
+| 8       |          |        |         |         |            |         |
 
 
 ## メモ
@@ -57,11 +57,12 @@ Archive:  yoursubmission.zip
 - 30epochあれば十分かもしれない
 - SSE: 10epoch(SGDR) + 5epoch * 4shot = 30epoch
 - HorizonFlipでも行けるかもしれない(反転しても同じものは存在しないため)
+- Attention Branch Networkを試して見たい（Wide ResNet, SENet, ResNeXtあたり)
 - 残り1サブのみなので注意
 
 ### 最終的なパイプライン
-1. KANAデータで事前学習(resnet, se_resnextあたり) (6月中)
-2. low resolutionで学習,推論 (7月末まで)
+1. KANAデータで事前学習(resnet, se_resnextあたり) (6月中) (解像度とCutoutを考慮したモデルを作成)
+2. low resolution(backbone+(Residual LSTM or GRU (bidirectional)))で学習,推論 (7月末まで)
 3. Pseudo Labeling (7月末まで)
 4. high resolution + SSE で学習、推論 (8/28まで)
 5. Post Processing(Ensemble) (8/31まで)
@@ -77,9 +78,9 @@ Archive:  yoursubmission.zip
 - margin augmentation
 
 ## TODO
-- Encoder-Decoder ResNet
+- マイナーアップサンプリング
 - margin augment
-- Mixup
+- validデータ結果を最終的に出力する。
 
 
 ## Model(backbone)
