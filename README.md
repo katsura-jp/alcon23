@@ -38,17 +38,17 @@ Archive:  yoursubmission.zip
 
 
 ## 結果
-| exp No. | Local CV | Public | Private | model   | resolution | comment |
+| exp No. | Local CV | fold0  | Public  | model   | resolution | comment |
 | ------: | -------: | -----: | ------: | :------ | ------:    | :------ |
 | 0       |  87.391% |        |         |         |            | test example. only fold0. |
-| 1       |          |        |         | resnet18| 1          |         |
+| 1 (2019-06-13_10-46-46) |          | 87.301% |         | ResNet18 | 1  | MultiStepLR,momentumSGD |
 | 2       |          |        |         |         |            |         |
 | 3       |          |        |         |         |            |         |
-| 4       |          |        |         | ResNet50+LSTM(bi-directional) | 2 | |
-| 5       |          |        |         |         |            |         |
-| 6       |          |        |         |         |            |         |
-| 7       |          |        |         |         |            |         |
-| 8       |          |        |         |         |            |         |
+| 4.1 (2019-06-20_01-08-53) |          | 90.695% |         | ResNet50+LSTM(bi-directional) | 2 | MultiStepLR, momentumSGD,CutOut 120x120|
+| 4.2 (2019-06-23_01-57-06) |          |        |         | ResNet50+LSTM(bi-directional)  | 2|  MultiStepLR, momentumSGD,CutOut height//2 x width//2      |
+| 4.3     |          |        |         |         |            |         |
+| 4.4     |          |        |         |         |            |         |
+| 4.5     |          |        |         |         |            |         |
 
 
 ## メモ
@@ -74,13 +74,25 @@ Archive:  yoursubmission.zip
 - SGDR 
 
 ## アイデア
-- backbone encoder + LSTM
+- backbone encoder + LSTM（or GRU）
 - margin augmentation
 
 ## TODO
 - マイナーアップサンプリング
 - margin augment
 - validデータ結果を最終的に出力する。
+- ABN用の実験コード作成
+- SSE用の実験コード作成
+- 2層RNN+backboneモデルの作成
+
+## Model(original)
+- 001: Encoder-Decoder ResNet(test model)
+- 002: SE_ResNeXt101+LSTM
+- 003: ResNet50+LSTM
+- 004: ResNet50+Residual LSTM
+- 005: ResNet50+Residual LSTM+MLP
+- 006: ResNet50+GRU
+- 007: ResNet50+LSTM+Attention Branch Network
 
 
 ## Model(backbone)

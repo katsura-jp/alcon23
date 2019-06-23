@@ -38,6 +38,8 @@ def alcon_1char_valid(model, dataloader, device, loss_fn, eval_fn):
     model.eval()
     avg_loss = 0
     avg_accuracy = 0
+    accuracy_by_char = torch.zeros(48)
+    count_char = torch.zeros(48)
     with torch.no_grad():
         for inputs, targets in dataloader:
             inputs = inputs.to(device)
@@ -46,7 +48,14 @@ def alcon_1char_valid(model, dataloader, device, loss_fn, eval_fn):
             preds = logits.softmax(dim=1)
             loss = loss_fn(logits, targets.argmax(dim=1))
             avg_loss += loss.item()
-            avg_accuracy += eval_fn(preds, targets.argmax(dim=1))
+            avg_accuracy += eval_fn(preds, targets.argmax(dim=1), mean=False)
+            for i in range(48):
+                accuracy_by_char[i] += avg_accuracy[targets == i].sum()
+                idx, cnt = targets.unique(return_counts=True)
+                count_char[idx] += cnt
+            avg_accuracy = avg_accuracy.mean(dim=0)
+
+        accuracy_by_char /= count_char
         avg_loss /= len(dataloader)
         avg_accuracy /= len(dataloader)
 

@@ -67,11 +67,11 @@ def main():
     param['batch size'] = max(param['batch size'], param['batch size'] * param['GPU'])
     if param['debug']:
         train_dataset = KanaDataset(df=get_char_df(param['tabledir']).query('valid != 0').iloc[:param['batch size']],
-                                     augmentation=get_train_augmentation(get_resolution(param['resolution'])),
+                                     augmentation=get_train_augmentation(*get_resolution(param['resolution'])),
                                      datadir=os.path.join(param['dataroot']))
 
         valid_dataset = KanaDataset(df=get_char_df(param['tabledir']).query('valid == 0').iloc[:param['batch size']],
-                                     augmentation=get_train_augmentation(get_resolution(param['resolution'])),
+                                     augmentation=get_train_augmentation(*get_resolution(param['resolution'])),
                                      datadir=os.path.join(param['dataroot']))
     else:
         train_dataset = KanaDataset(df=get_char_df(param['tabledir']).query('valid != 0'),
@@ -170,7 +170,11 @@ def main():
         logger.info('======================== epoch {} ========================'.format(epoch+1))
         logger.info('lr              : {:.5f}'.format(scheduler.get_lr()[0]))
         logger.info('loss            : train={:.5f}  , test={:.5f}'.format(avg_train_loss, avg_valid_loss))
-        logger.info('acc             :                   test={:.3%}'.format(avg_valid_accuracy))
+        logger.info('acc             :                  test={:.3%}'.format(avg_valid_accuracy))
+        #TODO: 各ラベルに対してaccuracyを表示する
+
+
+
 
         if min_loss > avg_valid_loss:
             logger.debug('update best loss:  {:.5f} ---> {:.5f}'.format(min_loss, avg_valid_loss))

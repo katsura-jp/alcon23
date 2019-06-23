@@ -40,7 +40,7 @@ class KanaDataset(Dataset):
 
 
 class AlconDataset(Dataset):
-    def __init__(self, df, augmentation, datadir, split=True, mode='train', onehot=True):
+    def __init__(self, df, augmentation, datadir, split=True, mode='train', onehot=True, margin_augmentation=False):
         super(AlconDataset, self).__init__()
         self.df = df
         self.augmentation = augmentation
@@ -49,6 +49,7 @@ class AlconDataset(Dataset):
         self.onehot = onehot
         self.split = split
         self.num_classes = 48
+        self.margin_augmentation = margin_augmentation
 
     def __getitem__(self, index):
         _index = self.df.index[index]
@@ -69,6 +70,9 @@ class AlconDataset(Dataset):
                 split1 = self.df.loc[_index, 'split1']
                 split2 = self.df.loc[_index, 'split2']
                 margin = self.df.loc[_index, 'margin']
+                if self.margin_augmentation:
+                    spilt1 += np.random.randint(-margin, margin)
+                    split2 += np.random.randint(-margin, margin)
                 img1 = image[:split1 + margin, :, :]
                 img2 = image[split1 - margin:split2 + margin, :, :]
                 img3 = image[split2 - margin:, :, :]
