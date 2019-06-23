@@ -75,11 +75,11 @@ def main():
                                      datadir=os.path.join(param['dataroot']))
     else:
         train_dataset = KanaDataset(df=get_char_df(param['tabledir']).query('valid != 0'),
-                                    augmentation=get_train_augmentation(get_resolution(param['resolution'])),
+                                    augmentation=get_train_augmentation(*get_resolution(param['resolution'])),
                                     datadir=os.path.join(param['dataroot']))
 
         valid_dataset = KanaDataset(df=get_char_df(param['tabledir']).query('valid == 0'),
-                                    augmentation=get_train_augmentation(get_resolution(param['resolution'])),
+                                    augmentation=get_train_augmentation(*get_resolution(param['resolution'])),
                                     datadir=os.path.join(param['dataroot']))
 
     logger.debug('train dataset size: {}'.format(len(train_dataset)))
@@ -131,12 +131,14 @@ def main():
 
     # optim
     optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9,weight_decay=1e-5, nesterov=False)
+    # optimizer = torch.optim.SGD(model.parameters(), lr=0.1, momentum=0.9,weight_decay=1e-5, nesterov=False)
+    # optimizer = torch.optim.Adam(model.parameters(), lr=5e-5)
 
-
-    scheduler = CosineAnnealingWarmUpRestarts(optimizer, T_0=len(train_dataloader)*3, T_mult=2, eta_max=0.1, T_up=500)
-
+    scheduler = CosineAnnealingWarmUpRestarts(optimizer, T_0=len(train_dataloader)*5, T_mult=2, eta_max=1e-3, T_up=200)
+    # scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[20*len(train_dataloader)], gamma=0.1)
+    # scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[15*len(train_dataloader), 20*len(train_dataloader), 30*len(train_dataloader)], gamma=0.1)
     model = model.to(param['device'])
-    if param['GPU'] > 1:
+    if param['GPU'] > 0:
         model = nn.DataParallel(model)
 
     loss_fn = nn.CrossEntropyLoss().to(param['device'])
@@ -152,7 +154,7 @@ def main():
         writer.add_text('data/hyperparam/{}'.format(key), str(val), 0)
 
 
-    mb = master_bar(range(3 + 3*2 + 3*4)) # 21
+    mb = master_bar(range(5 + 5*2 + 5*4))
 
     for epoch in mb:
         avg_train_loss = alcon_1char_train(model, optimizer, train_dataloader, param['device'],
