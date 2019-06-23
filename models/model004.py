@@ -2,9 +2,9 @@ import torch
 import torch.nn as nn
 from .resnet import *
 
-class ResNetLSTM(nn.Module):
+class ResNetResLSTM(nn.Module):
     def __init__(self, num_classes, hidden_size=512, bidirectional=False, dropout=0.5, load_weight=None):
-        super(ResNetLSTM, self).__init__()
+        super(ResNetResLSTM, self).__init__()
         self.num_classes = num_classes
         self.hidden_size = hidden_size
         self.bidirectional = bidirectional
@@ -26,7 +26,8 @@ class ResNetLSTM(nn.Module):
             self.lstm = nn.LSTM(self.resnet.fc.in_features, hidden_size=hidden_size//2, batch_first=True,bidirectional=True)
         else:
             self.lstm = nn.LSTM(self.resnet.fc.in_features, hidden_size=hidden_size, batch_first=True, bidirectional=False)
-
+        if self.resnet.fc.in_features != hidden_size:
+            self.downsample = nn.Conv1d(self.resnet.fc.in_features, hidden_size, kernel_size=1, bias=False)
         self.fc = nn.Linear(hidden_size, num_classes)
 
     def encode(self, x):
@@ -52,8 +53,11 @@ class ResNetLSTM(nn.Module):
             hidden = (torch.zeros(1, batch, self.hidden_size, dtype=x.dtype, device=x.device),
                         torch.zeros(1, batch, self.hidden_size, dtype=x.dtype, device=x.device))
 
+        identify = self.downsample(x.view(-1, x.size(2), 1)).squeeze() if self.downsample is not None else x.view(-1, x.size(2))
         x, _ = self.lstm(x, hidden)
-        x = self.fc(x.contiguous().view(-1, x.size(2)))
+        x = x.contiguous().view(-1, x.size(2))
+        x += identify
+        x = self.fc(x)
         return x
 
     def forward(self, x):
@@ -66,7 +70,7 @@ class ResNetLSTM(nn.Module):
 
 def test():
     inputs = torch.FloatTensor(8, 3, 3, 224, 224)
-    model = SE_ResNextLSTM(10, 512, bidirectional=True)
+    model = ResNetResLSTM(10, 512, bidirectional=True)
     logits = model(inputs)
     print(logits.size())
 

@@ -66,7 +66,7 @@ class ResNetLSTM(nn.Module):
 
 def test():
     inputs = torch.FloatTensor(8, 3, 3, 224, 224)
-    model = SE_ResNextLSTM(10, 512, bidirectional=True)
+    model = ResNetLSTM(10, 512, bidirectional=True)
     logits = model(inputs)
     print(logits.size())
 
