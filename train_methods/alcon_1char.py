@@ -14,6 +14,7 @@ def alcon_1char_train(model, optimizer, dataloader, device, loss_fn, eval_fn, ep
         optimizer.zero_grad()
         logits = model(inputs)
         loss = lam * loss_fn(logits, y1) + (1-lam) * loss_fn(logits, y2)
+        # loss = loss_fn(logits, targets.argmax(dim=1))
         loss.backward()
         # nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         optimizer.step()

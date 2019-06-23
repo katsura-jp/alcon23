@@ -22,7 +22,7 @@ def get_train_augmentation(height=336, width=224, scale_height=384, scale_width=
         ], p=1.0),
         albu.MotionBlur(blur_limit=10, p=0.7),
         albu.Normalize(mean=[0.695, 0.658, 0.592], std=[0.191, 0.185, 0.171], max_pixel_value=255),
-        albu.Cutout(num_holes=1, max_h_size=120, max_w_size=120, p=0.5),
+        albu.Cutout(num_holes=1, max_h_size=height//2, max_w_size=width//2, p=1.0),
         ToTensor()
     ])
     return train_augmentation

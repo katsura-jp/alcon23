@@ -73,19 +73,19 @@ def main():
         param['batch size'] = max(param['batch size'], param['batch size'] * param['GPU'])
         if param['debug']:
             train_dataset = AlconDataset(df=get_train_df(param['tabledir']).query('valid != @fold').iloc[:param['batch size']],
-                                         augmentation=get_train_augmentation(get_resolution(param['resolution'])),
+                                         augmentation=get_train_augmentation(*get_resolution(param['resolution'])),
                                          datadir=os.path.join(param['dataroot'],'train','imgs'), mode='train')
 
             valid_dataset = AlconDataset(df=get_train_df(param['tabledir']).query('valid == @fold').iloc[:param['batch size']],
-                                         augmentation=get_test_augmentation(get_resolution(param['resolution'])),
+                                         augmentation=get_test_augmentation(*get_resolution(param['resolution'])),
                                          datadir=os.path.join(param['dataroot'],'train','imgs'), mode='valid')
         else:
             train_dataset = AlconDataset(df=get_train_df(param['tabledir']).query('valid != @fold'),
-                                         augmentation=get_train_augmentation(get_resolution(param['resolution'])),
+                                         augmentation=get_train_augmentation(*get_resolution(param['resolution'])),
                                          datadir=os.path.join(param['dataroot'], 'train', 'imgs'), mode='train')
 
             valid_dataset = AlconDataset(df=get_train_df(param['tabledir']).query('valid == @fold'),
-                                         augmentation=get_test_augmentation(get_resolution(param['resolution'])),
+                                         augmentation=get_test_augmentation(*get_resolution(param['resolution'])),
                                          datadir=os.path.join(param['dataroot'], 'train', 'imgs'), mode='valid')
         logger.debug('train dataset size: {}'.format(len(train_dataset)))
         logger.debug('valid dataset size: {}'.format(len(valid_dataset)))
@@ -208,11 +208,11 @@ def main():
 
         if param['debug']:
             test_dataset = AlconDataset(df=get_test_df(param['tabledir']).iloc[:param['batch size']],
-                                        augmentation=get_test_augmentation(),
+                                        augmentation=get_test_augmentation(*get_resolution(param['resolution'])),
                                         datadir=os.path.join(param['dataroot'], 'test', 'imgs'), mode='test')
         else:
             test_dataset = AlconDataset(df=get_test_df(param['tabledir']),
-                                        augmentation=get_test_augmentation(),
+                                        augmentation=get_test_augmentation(*get_resolution(param['resolution'])),
                                         datadir=os.path.join(param['dataroot'], 'test', 'imgs'), mode='test')
 
 
