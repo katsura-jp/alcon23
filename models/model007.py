@@ -9,7 +9,7 @@ class ABN_ResNetLSTM(nn.Module):
         self.hidden_size = hidden_size
         self.bidirectional = bidirectional
 
-        self.resnet = abn_resnet50(pretrained=False, num_classes=num_classes)
+        self.resnet = abn_resnet50(pretrained=True, num_classes=num_classes)
         if load_weight is not None:
             self.resnet.load_state_dict(torch.load(load_weight))
         self.conv1 = self.resnet.conv1

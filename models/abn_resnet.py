@@ -219,6 +219,9 @@ def abn_resnet34(pretrained=False, num_classes=48, **kwargs):
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
     model = ABN_ResNet(BasicBlock, [3, 4, 6, 3], **kwargs)
+    if torch.cuda.is_available():
+        model = nn.DataParallel(model)
+
     if pretrained:
         model.load_state_dict(model_zoo.load_url(model_urls['resnet34']))
 
@@ -238,8 +241,17 @@ def abn_resnet50(pretrained=False, num_classes=48, **kwargs):
     model = ABN_ResNet(Bottleneck, [3, 4, 6, 3], **kwargs)
     assert model.fc.out_features == 1000
 
+    # if torch.cuda.is_available():
+    #    model = nn.DataParallel(model)
     if pretrained:
-        model.load_state_dict(model_zoo.load_url(model_urls['resnet50']))
+        param = model_zoo.load_url(model_urls['resnet50'])
+        keys = list(param.keys())
+        model_param = model.state_dict()
+        model_keys = list(model_param.keys())
+        for key in keys:
+            if key in model_keys:
+                model_param[key] = param[key]
+        model.load_state_dict(model_param)
 
     model.att_conv = nn.Conv2d(model.att_conv.in_channels, num_classes, kernel_size=1, padding=0, bias=False)
     model.bn_att2 = nn.BatchNorm2d(num_classes)
