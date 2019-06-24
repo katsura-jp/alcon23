@@ -45,7 +45,7 @@ Archive:  yoursubmission.zip
 | 2       |          |        |         |         |            |         |
 | 3       |          |        |         |         |            |         |
 | 4.1 (2019-06-20_01-08-53) |          | 90.695% |         | ResNet50+LSTM(bi-directional) | 2 | MultiStepLR, momentumSGD,CutOut 120x120|
-| 4.2 (2019-06-23_01-57-06) |          |        |         | ResNet50+LSTM(bi-directional)  | 2|  MultiStepLR, momentumSGD,CutOut height//2 x width//2      |
+| 4.2 (2019-06-23_01-57-06) |          | 92.302% |         | ResNet50+LSTM(bi-directional)  | 2|  MultiStepLR, momentumSGD,CutOut height//2 x width//2      |
 | 4.3     |          |        |         |         |            |         |
 | 4.4     |          |        |         |         |            |         |
 | 4.5     |          |        |         |         |            |         |
