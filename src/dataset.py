@@ -71,7 +71,7 @@ class AlconDataset(Dataset):
                 split2 = self.df.loc[_index, 'split2']
                 margin = self.df.loc[_index, 'margin']
                 if self.margin_augmentation:
-                    spilt1 += np.random.randint(-margin, margin)
+                    split1 += np.random.randint(-margin, margin)
                     split2 += np.random.randint(-margin, margin)
                 img1 = image[:split1 + margin, :, :]
                 img2 = image[split1 - margin:split2 + margin, :, :]
