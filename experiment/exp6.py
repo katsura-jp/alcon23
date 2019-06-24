@@ -104,7 +104,7 @@ def main():
         logger.debug('valid loader size: {}'.format(len(valid_dataloader)))
 
         # model
-        model = ResNetLSTM(num_classes=48, hidden_size=512, bidirectional=True, load_weight=param['load weight'], dropout=param['dropout'])
+        model = ResNetLSTM(num_classes=48, hidden_size=512, bidirectional=True, load_weight=None, dropout=param['dropout'])
 
         param['model'] = model.__class__.__name__
 
@@ -141,10 +141,10 @@ def main():
 
         mb = master_bar(range(param['epoch']))
         for epoch in mb:
-            avg_train_loss, avg_train_accuracy, avg_three_train_acc = train_alcon_rnn(model, optimizer, train_dataloader, param['device'],
+            avg_train_loss, avg_train_accuracy, avg_three_train_acc = train_alcon_abn(model, optimizer, train_dataloader, param['device'],
                                            loss_fn, eval_fn, epoch, scheduler=None, writer=writer, parent=mb) #ok
 
-            avg_valid_loss, avg_valid_accuracy, avg_three_valid_acc = valid_alcon_rnn(model, valid_dataloader, param['device'],
+            avg_valid_loss, avg_valid_accuracy, avg_three_valid_acc = valid_alcon_abn(model, valid_dataloader, param['device'],
                                                                                   loss_fn, eval_fn)
 
             writer.add_scalars("data/metric/valid", {
@@ -223,7 +223,7 @@ def main():
         logger.debug('test dataset size: {}'.format(len(test_dataset)))
         logger.debug('test loader size: {}'.format(len(test_dataloader)))
 
-        output_list = pred_alcon_rnn(model, test_dataloader, param['device'])
+        output_list = pred_alcon_abn(model, test_dataloader, param['device'])
         torch.save(output_list, os.path.join(outdir, 'prediction.pth'))
         pd.DataFrame(output_list).drop('logit', axis=1).sort_values('ID').set_index('ID').to_csv(os.path.join(outdir, 'test_prediction.csv'))
         logger.debug('success!')
