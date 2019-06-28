@@ -46,9 +46,10 @@ Archive:  yoursubmission.zip
 | 3       |          |        |         |         |            |         |
 | 4.1 (2019-06-20_01-08-53) |          | 90.695% |         | ResNet50+LSTM(bi-directional) | 2 | MultiStepLR, momentumSGD,CutOut 120x120|
 | 4.2 (2019-06-23_01-57-06) |          | 92.302% |         | ResNet50+LSTM(bi-directional)  | 2|  MultiStepLR, momentumSGD,CutOut height//2 x width//2      |
-| 4.3     |          |        |         |         |            |         |
-| 4.4     |          |        |         |         |            |         |
-| 4.5     |          |        |         |         |            |         |
+| 6 (2019-06-24_04-20-17) |          | 85.695% |         | ResNet50+bi-LSTM+ABN | 2 | MultiStepLR, momentumSGD,CutOut height//2 x width//2  |
+| 4.3 (2019-06-25_17-50-21) |          | 92.556%  |         | ResNet50+bi-GRU  | 2 | MultiStepLR, momentumSGD,CutOut height//2 x width//2 |
+| 4.4 (2019-06-27_00-17-53)    |          | 88.765% |         | ResNetResLSTM_MLP |   2 | MultiStepLR, momentumSGD,CutOut height//2 x width//2 |
+| 4.5 ()    |          |  |         | ResNetGRU2 |   2 | MultiStepLR, momentumSGD,CutOut height//2 x width//2 |
 
 
 ## メモ
@@ -57,7 +58,7 @@ Archive:  yoursubmission.zip
 - 30epochあれば十分かもしれない
 - SSE: 10epoch(SGDR) + 5epoch * 4shot = 30epoch
 - HorizonFlipでも行けるかもしれない(反転しても同じものは存在しないため)
-- Attention Branch Networkを試して見たい（Wide ResNet, SENet, ResNeXtあたり)
+- Attention Branch Networkを試して見たい（Wide ResNet, SENet, ResNeXtあたり) => 精度悪化
 - 残り1サブのみなので注意
 
 ### 最終的なパイプライン
@@ -79,11 +80,9 @@ Archive:  yoursubmission.zip
 
 ## TODO
 - マイナーアップサンプリング
-- margin augment
 - validデータ結果を最終的に出力する。
-- ABN用の実験コード作成
 - SSE用の実験コード作成
-- 2層RNN+backboneモデルの作成
+- SEResNetとResNetの比較
 
 ## Model(original)
 - 001: Encoder-Decoder ResNet(test model)
@@ -93,9 +92,19 @@ Archive:  yoursubmission.zip
 - 005: ResNet50+Residual LSTM+MLP
 - 006: ResNet50+GRU
 - 007: ResNet50+LSTM+Attention Branch Network
+- 008: ResNet50+GRUx2
 
 
-## Model(backbone)
+## Model(backbone use)
+- ResNet-18,34,50,101,152(5~7 day/model)
+- ResNeXt-50,101 (2week/model)
+- SENet (3week/model)
+- DenseNet-101,201
+- WideResNet
+- Inception-v4
+- NasNet large
+
+## Model(backbone memo)
 - ResNet
 - PreAct ResNet
 - ResNeXt
