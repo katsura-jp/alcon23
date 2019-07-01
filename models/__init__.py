@@ -4,7 +4,8 @@ from .model004 import ResNetResLSTM
 from .model005 import ResNetResLSTM_MLP
 from .model006 import ResNetGRU
 from .model007 import ABN_ResNetLSTM
-
+from .model008 import ResNetGRU2
+from .model009 import ResNetGRU3
 
 from .inceptionv4 import *
 from .senet import *
