@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from oct_resnet import *
+from .oct_resnet import *
 
 class OctResNetGRU3(nn.Module):
     def __init__(self, num_classes, hidden_size=512, bidirectional=False, dropout=0.5, load_weight=None):
