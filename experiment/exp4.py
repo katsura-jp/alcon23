@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 import tensorboardX as tbx
 from fastprogress import progress_bar, master_bar
 
-from models import ResNetLSTM
+from models import ResNetLSTM, ResNetGRU, ResNetResLSTM,ResNetResLSTM_MLP, ResNetGRU2, ResNetGRU3
 from src.augmentation import get_test_augmentation, get_train_augmentation
 from src.dataset import AlconDataset, KanaDataset
 from src.metrics import *
@@ -102,7 +102,10 @@ def main():
         logger.debug('valid loader size: {}'.format(len(valid_dataloader)))
 
         # model
-        model = ResNetLSTM(num_classes=48, hidden_size=512, bidirectional=True, load_weight=param['load weight'], dropout=param['dropout'])
+        # model = ResNetGRU(num_classes=48, hidden_size=512, bidirectional=True, load_weight=param['load weight'], dropout=param['dropout'])
+        model = ResNetGRU3(num_classes=48, hidden_size=512, bidirectional=True, load_weight=param['load weight'], dropout=param['dropout'])
+        # model = ResNetLSTM(num_classes=48, hidden_size=512, bidirectional=True, load_weight=param['load weight'], dropout=param['dropout'])
+        # model = ResNetResLSTM_MLP(num_classes=48, hidden_size=512, bidirectional=True, load_weight=param['load weight'], dropout=param['dropout'])
 
         param['model'] = model.__class__.__name__
 
