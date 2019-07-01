@@ -78,6 +78,44 @@ class Conv_BN_ACT(nn.Module):
         x_l = self.act(self.bn_l(x_l)) if x_l is not None else None
         return x_h, x_l
 
+
+class BasicBlock(nn.Module):
+    expansion = 1
+    def __init__(self, inplanes, planes, stride=1, downsample=None, groups=1,
+                 base_width=64, alpha_in=0.5, alpha_out=0.5, norm_layer=None, output=False):
+        super(BasicBlock, self).__init__()
+        if norm_layer is None:
+            norm_layer = nn.BatchNorm2d
+        width = int(planes * (base_width / 64.)) * groups
+        self.conv1 = Conv_BN_ACT(inplanes, width, kernel_size=3, alpha_in=alpha_in, alpha_out=alpha_out,
+                                 norm_layer=norm_layer)
+        self.conv2 = Conv_BN(width, planes * self.expansion, kernel_size=3, norm_layer=norm_layer,
+                             alpha_in=0 if output else 0.5, alpha_out=0 if output else 0.5)
+        self.relu = nn.ReLU(inplace=True)
+        self.downsample = downsample
+        self.stride = stride
+
+    def forward(self, x):
+        identity_h = x[0] if type(x) is tuple else x
+        identity_l = x[1] if type(x) is tuple else None
+
+        x_h, x_l = self.conv1(x)
+        x_h, x_l = self.conv2((x_h, x_l))
+        if self.downsample is not None:
+            identity_h, identity_l = self.downsample(x)
+
+        x_h += identity_h
+        x_l = x_l + identity_l if identity_l is not None else None
+
+        x_h = self.relu(x_h)
+        x_l = self.relu(x_l) if x_l is not None else None
+
+        return x_h, x_l
+
+
+        return x_h
+
+
 class Bottleneck(nn.Module):
     expansion = 4
 
@@ -156,9 +194,15 @@ class OctResNet(nn.Module):
         if zero_init_residual:
             for m in self.modules():
                 if isinstance(m, Bottleneck):
-                    nn.init.constant_(m.bn3.weight, 0)
+                    if m.conv3.bn_h is not None:
+                        nn.init.constant_(m.conv3.bn_h.weight, 0)
+                    if m.conv3.bn_l is not None:
+                        nn.init.constant_(m.conv3.bn_l.weight, 0)
                 elif isinstance(m, BasicBlock):
-                    nn.init.constant_(m.bn2.weight, 0)
+                    if m.conv2.bn_h is not None:
+                        nn.init.constant_(m.conv2.bn_h.weight, 0)
+                    if m.conv2.bn_l is not None:
+                        nn.init.constant_(m.conv2.bn_l.weight, 0)
 
     def _make_layer(self, block, planes, blocks, stride=1, alpha_in=0.5, alpha_out=0.5, norm_layer=None, output=False):
         if norm_layer is None:
