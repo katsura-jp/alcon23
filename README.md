@@ -49,8 +49,8 @@ Archive:  yoursubmission.zip
 | 6 (2019-06-24_04-20-17) |          | 85.695% |         | ResNet50+bi-LSTM+ABN | 2 | MultiStepLR, momentumSGD,CutOut height//2 x width//2  |
 | 4.3 (2019-06-25_17-50-21) |          | 92.556%  |         | ResNet50+bi-GRU  | 2 | MultiStepLR, momentumSGD,CutOut height//2 x width//2 |
 | 4.4 (2019-06-27_00-17-53)    |          | 88.765% |         | ResNetResLSTM_MLP |   2 | MultiStepLR, momentumSGD,CutOut height//2 x width//2 |
-| 4.5 ()    |          |  |         | ResNetGRU2 |   2 | MultiStepLR, momentumSGD,CutOut height//2 x width//2 |
-
+| 4.5 (2019-06-28_02-06-42)    |          | 92.943% |         | ResNetGRU2 |   2 | MultiStepLR, momentumSGD,CutOut height//2 x width//2. 学習不十分かもしれない |
+| 4.6 (2019-06-30_07-33-17) |           |       |        | ResNetGRU3 |  2 | Grad clip(1.0) |
 
 ## メモ
 - resnet18,batch 128で16m / epoch
@@ -77,6 +77,7 @@ Archive:  yoursubmission.zip
 ## アイデア
 - backbone encoder + LSTM（or GRU）
 - margin augmentation
+- Resolution Ensemble
 
 ## TODO
 - マイナーアップサンプリング
@@ -93,7 +94,7 @@ Archive:  yoursubmission.zip
 - 006: ResNet50+GRU
 - 007: ResNet50+LSTM+Attention Branch Network
 - 008: ResNet50+GRUx2
-
+- 009: ResNet50+GRUx3
 
 ## Model(backbone use)
 - ResNet-18,34,50,101,152(5~7 day/model)
