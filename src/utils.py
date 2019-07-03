@@ -50,6 +50,8 @@ def get_resolution(n=1):
         return 84, 56, 96, 64
     elif n == 5:
         return 64, 64 , 72 ,72
+    elif n == 6:
+        return 192, 128, 210, 140
 
 
 def mixup_data(x, y, alpha=0.2, device="cpu"):

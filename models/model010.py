@@ -2,9 +2,9 @@ import torch
 import torch.nn as nn
 from .oct_resnet import *
 
-class OctResNetGRU3(nn.Module):
+class OctResNetGRU2(nn.Module):
     def __init__(self, num_classes, hidden_size=512, bidirectional=False, dropout=0.5, load_weight=None):
-        super(OctResNetGRU3, self).__init__()
+        super(OctResNetGRU2, self).__init__()
         self.num_classes = num_classes
         self.hidden_size = hidden_size
         self.bidirectional = bidirectional
@@ -26,11 +26,9 @@ class OctResNetGRU3(nn.Module):
         if bidirectional:
             self.gru1 = nn.GRU(self.resnet.fc.in_features, hidden_size=hidden_size//2, batch_first=True,bidirectional=True)
             self.gru2 = nn.GRU(hidden_size, hidden_size=hidden_size//2, batch_first=True,bidirectional=True)
-            self.gru3 = nn.GRU(hidden_size, hidden_size=hidden_size//2, batch_first=True,bidirectional=True)
         else:
             self.gru1 = nn.GRU(self.resnet.fc.in_features, hidden_size=hidden_size, batch_first=True, bidirectional=False)
             self.gru2 = nn.GRU(hidden_size, hidden_size=hidden_size, batch_first=True, bidirectional=False)
-            self.gru3 = nn.GRU(hidden_size, hidden_size=hidden_size, batch_first=True, bidirectional=False)
 
         self.fc = nn.Linear(hidden_size, num_classes)
 
@@ -58,7 +56,6 @@ class OctResNetGRU3(nn.Module):
 
         x, _ = self.gru1(x, hidden)
         x, _ = self.gru2(x, hidden)
-        x, _ = self.gru3(x, hidden)
 
         x = self.fc(x.contiguous().view(-1, x.size(2)))
         return x
@@ -72,8 +69,11 @@ class OctResNetGRU3(nn.Module):
 
 
 def test():
-    inputs = torch.FloatTensor(8, 3, 3, 224, 224)
-    model = OctResNetGRU3(10, 512, bidirectional=True)
+    # inputs = torch.FloatTensor(6, 3, 3,200, 200)
+    inputs = torch.FloatTensor(16, 3, 3, 192 , 128)
+    model = OctResNetGRU2(48, 512, bidirectional=True)
+    model = model.to('cuda:0')
+    inputs = inputs.to('cuda:0')
     logits = model(inputs)
     print(logits.size())
 
