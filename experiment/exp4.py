@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 import tensorboardX as tbx
 from fastprogress import progress_bar, master_bar
 
-from models import ResNetLSTM, ResNetGRU, ResNetResLSTM,ResNetResLSTM_MLP, ResNetGRU2, ResNetGRU3
+from models import ResNetLSTM, ResNetGRU, ResNetResLSTM,ResNetResLSTM_MLP, ResNetGRU2, ResNetGRU3, OctResNetGRU2
 from src.augmentation import get_test_augmentation, get_train_augmentation
 from src.dataset import AlconDataset, KanaDataset
 from src.metrics import *
@@ -82,11 +82,14 @@ def main():
         else:
             train_dataset = AlconDataset(df=get_train_df(param['tabledir']).query('valid != @fold'),
                                          augmentation=get_train_augmentation(*get_resolution(param['resolution'])),
-                                         datadir=os.path.join(param['dataroot'], 'train', 'imgs'), mode='train')
+                                         datadir=os.path.join(param['dataroot'], 'train', 'imgs'), mode='train',
+                                         margin_augmentation=True)
 
             valid_dataset = AlconDataset(df=get_train_df(param['tabledir']).query('valid == @fold'),
                                          augmentation=get_test_augmentation(*get_resolution(param['resolution'])),
-                                         datadir=os.path.join(param['dataroot'], 'train', 'imgs'), mode='valid')
+                                         datadir=os.path.join(param['dataroot'], 'train', 'imgs'), mode='valid',
+                                         margin_augmentation=False)
+
         logger.debug('train dataset size: {}'.format(len(train_dataset)))
         logger.debug('valid dataset size: {}'.format(len(valid_dataset)))
 
@@ -103,7 +106,8 @@ def main():
 
         # model
         # model = ResNetGRU(num_classes=48, hidden_size=512, bidirectional=True, load_weight=param['load weight'], dropout=param['dropout'])
-        model = ResNetGRU3(num_classes=48, hidden_size=512, bidirectional=True, load_weight=param['load weight'], dropout=param['dropout'])
+        model = OctResNetGRU2(num_classes=48, hidden_size=512, bidirectional=True, load_weight=None, dropout=param['dropout'])
+        # model = ResNetGRU3(num_classes=48, hidden_size=512, bidirectional=True, load_weight=param['load weight'], dropout=param['dropout'])
         # model = ResNetLSTM(num_classes=48, hidden_size=512, bidirectional=True, load_weight=param['load weight'], dropout=param['dropout'])
         # model = ResNetResLSTM_MLP(num_classes=48, hidden_size=512, bidirectional=True, load_weight=param['load weight'], dropout=param['dropout'])
 

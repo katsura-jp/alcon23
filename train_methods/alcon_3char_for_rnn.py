@@ -23,7 +23,7 @@ def train_alcon_rnn(model, optimizer, dataloader, device, loss_fn, eval_fn, epoc
         preds = logits.view(targets.size(0), 3, -1).softmax(dim=2)
         loss = loss_fn(logits, targets.view(-1, targets.size(2)).argmax(dim=1))
         loss.backward()
-        torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+        # torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         optimizer.step()
         avg_loss += loss.item()
         _avg_accuracy = eval_fn(preds, targets.argmax(dim=2)).item()
