@@ -50,7 +50,8 @@ Archive:  yoursubmission.zip
 | 4.3 (2019-06-25_17-50-21) |          | 92.556%  |         | ResNet50+bi-GRU  | 2 | MultiStepLR, momentumSGD,CutOut height//2 x width//2 |
 | 4.4 (2019-06-27_00-17-53)    |          | 88.765% |         | ResNetResLSTM_MLP |   2 | MultiStepLR, momentumSGD,CutOut height//2 x width//2 |
 | 4.5 (2019-06-28_02-06-42)    |          | 92.943% |         | ResNetGRU2 |   2 | MultiStepLR, momentumSGD,CutOut height//2 x width//2. 学習不十分かもしれない |
-| 4.6 (2019-06-30_07-33-17) |           |       |        | ResNetGRU3 |  2 | Grad clip(1.0) |
+| 4.6 (2019-06-30_07-33-17) |           | 92.710% |        | ResNetGRU3 |  2 | Grad clip(1.0) |
+| 4.7 (2019-07-01_15-10-22) |   | 94.062%  |  | OctResNetGRU2 | 6 |   |
 
 ## メモ
 - resnet18,batch 128で16m / epoch
@@ -183,3 +184,4 @@ Archive:  yoursubmission.zip
 3. 128 x 128  <--- 150 x 150
 4. 84  x 56   <--- 96  x 64
 5. 64  x 64   <--- 72  x 72
+6. 192 x 128  <--- 210 x 150
