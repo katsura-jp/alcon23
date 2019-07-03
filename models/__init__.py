@@ -7,6 +7,7 @@ from .model007 import ABN_ResNetLSTM
 from .model008 import ResNetGRU2
 from .model009 import ResNetGRU3
 from .model010 import OctResNetGRU2
+from .model011 import SEResNeXtGRU2
 
 from .inceptionv4 import *
 from .senet import *
