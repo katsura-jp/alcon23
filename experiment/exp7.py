@@ -148,7 +148,7 @@ def main():
         val_iter = len(train_dataloader) // 3
 
         for epoch in mb:
-            if epoch % 5 == 0 and epoch >= 10:
+            if epoch % 5 == 0 and epoch >= 0:
                 if snapshot > 1:
                     snapshot_loss_list.append(snapshot_loss)
                     snapshot_eval_list.append(snapshot_eval)
@@ -161,7 +161,8 @@ def main():
             avg_train_loss = 10**5
             avg_train_accuracy = 0.0
             avg_three_train_acc = 0.0
-            for step, (inputs, targets, indice) in progress_bar(train_dataloader, parent=mb):
+            for step, (inputs, targets, indice) in enumerate(progress_bar(train_dataloader, parent=mb)):
+                model.train()
                 inputs = inputs.to(param['device'])
                 targets = targets.to(param['device'])
                 optimizer.zero_grad()
