@@ -6,8 +6,8 @@ tabledir: /mnt/hdd1/alcon2019/input/tables/
 save path: /mnt/hdd1/alcon2019/
 GPU: 1
 thread: 14
-debug: False
+debug: True
 dropout: 0.5
 seed: 2019
 fold: [0]
-resolution: 2
+resolution: 6
