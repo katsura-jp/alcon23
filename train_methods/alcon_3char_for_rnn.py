@@ -99,3 +99,19 @@ def pred_alcon_rnn(model, dataloader, device):
 
 
     return output_list
+
+def logit_alcon_rnn(model, dataloader, device, prediction, div=1, init=True):
+    model.eval()
+
+    with torch.no_grad():
+        for step, (inputs, indices) in enumerate(dataloader):
+            inputs = inputs.to(device)
+            logits = model(inputs) # logits.size() = (batch*3, 48)
+            logits = logits.view(inputs.size(0), 3, -1) # logits.size() = (batch, 3, 48)
+
+            for i in range(inputs.size(0)):
+                index = indices[i]
+                if init:
+                    prediction[int(index.item())] = logits[i].detach().to('cpu') / div
+                else:
+                    prediction[int(index.item())] += logits[i].detach().to('cpu') / div

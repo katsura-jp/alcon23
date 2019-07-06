@@ -219,20 +219,20 @@ def main():
                         torch.save(model.state_dict(), os.path.join(outdir, 'best_3acc.pth'))
                     if snapshot > 0:
                         if snapshot_loss > avg_valid_loss:
-                            logger.debug('update best loss:  {:.5f} ---> {:.5f}'.format(snapshot_loss, avg_valid_loss))
+                            logger.debug('[snap] update best loss:  {:.5f} ---> {:.5f}'.format(snapshot_loss, avg_valid_loss))
                             snapshot_loss = avg_valid_loss
                             torch.save(model.state_dict(), os.path.join(outdir, f'best_loss_{snapshot}.pth'))
 
                         if snapshot_eval < avg_valid_accuracy:
                             logger.debug(
-                                'update best acc per 1 char:  {:.3%} ---> {:.3%}'.format(snapshot_eval,
+                                '[snap] update best acc per 1 char:  {:.3%} ---> {:.3%}'.format(snapshot_eval,
                                                                                          avg_valid_accuracy))
                             snapshot_eval = avg_valid_accuracy
                             torch.save(model.state_dict(), os.path.join(outdir, f'best_acc_{snapshot}.pth'))
 
                         if snapshot_eval3 < avg_three_valid_acc:
                             logger.debug(
-                                'update best acc per 3 char:  {:.3%} ---> {:.3%}'.format(snapshot_eval3,
+                                '[snap] update best acc per 3 char:  {:.3%} ---> {:.3%}'.format(snapshot_eval3,
                                                                                          avg_three_valid_acc))
                             snapshot_eval3 = avg_three_valid_acc
                             torch.save(model.state_dict(), os.path.join(outdir, f'best_3acc_{snapshot}.pth'))
@@ -278,19 +278,19 @@ def main():
                 torch.save(model.state_dict(), os.path.join(outdir, 'best_3acc.pth'))
             if snapshot > 0:
                 if snapshot_loss > avg_valid_loss:
-                    logger.debug('update best loss:  {:.5f} ---> {:.5f}'.format(snapshot_loss, avg_valid_loss))
+                    logger.debug('[snap] update best loss:  {:.5f} ---> {:.5f}'.format(snapshot_loss, avg_valid_loss))
                     snapshot_loss = avg_valid_loss
                     torch.save(model.state_dict(), os.path.join(outdir, f'best_loss_{snapshot}.pth'))
 
                 if snapshot_eval < avg_valid_accuracy:
                     logger.debug(
-                        'update best acc per 1 char:  {:.3%} ---> {:.3%}'.format(snapshot_eval, avg_valid_accuracy))
+                        '[snap] update best acc per 1 char:  {:.3%} ---> {:.3%}'.format(snapshot_eval, avg_valid_accuracy))
                     snapshot_eval = avg_valid_accuracy
                     torch.save(model.state_dict(), os.path.join(outdir, f'best_acc_{snapshot}.pth'))
 
                 if snapshot_eval3 < avg_three_valid_acc:
                     logger.debug(
-                        'update best acc per 3 char:  {:.3%} ---> {:.3%}'.format(snapshot_eval3, avg_three_valid_acc))
+                        '[snap] update best acc per 3 char:  {:.3%} ---> {:.3%}'.format(snapshot_eval3, avg_three_valid_acc))
                     snapshot_eval3 = avg_three_valid_acc
                     torch.save(model.state_dict(), os.path.join(outdir, f'best_3acc_{snapshot}.pth'))
 
@@ -312,19 +312,40 @@ def main():
         writer.export_scalars_to_json(os.path.join(outdir, 'history.json'))
         writer.close()
 
+        # Local cv
+        mb = master_bar(range(snapshot))
+        target_list = ()
+        for _, targets, _ in valid_dataloader:
+            targets = targets.argmax(dim=2)
+            target_list.append(targets)
+        target_list = torch.stack(target_list)
 
-        local_cv['fold{}'.format(fold)] = {'accuracy' : max_3char_acc, 'valid_size' : len(valid_dataset)}
+        valid_logit_dict = dict()
+        init = True
+        for i in mb:
+            model.load_state_dict(torch.load(os.path.join(outdir, f'best_3acc_{i+1}.pth')))
+            logit_alcon_rnn(model, valid_dataloader, param['device'], valid_logit_dict, div=snapshot, init=init)
+            init = False
+
+
+        pred_list = torch.stack(list(valid_logit_dict.values()))
+        pred_list = pred_list.softmax(dim=2)
+        local_accuracy = accuracy_three_character(pred_list, target_list)
+        logger.debug('LOCAL CV : {:5%}'.format(local_accuracy))
+        torch.save(valid_logit_dict,os.path.join(outdir, f'fold{fold}_valid_logit.pth'))
+
+        local_cv['fold{}'.format(fold)] = {'accuracy' : local_accuracy, 'valid_size' : len(valid_dataset)}
 
 
         del train_dataset, valid_dataset
         del train_dataloader, valid_dataloader
         del scheduler, optimizer
+        del valid_logit_dict, target_list
         gc.collect()
 
 
         logger.debug('=========== Prediction phrase ===========')
-        logger.debug('load weight  :  {}'.format(os.path.join(outdir, 'best_3acc.pth')))
-        model.load_state_dict(torch.load(os.path.join(outdir, 'best_3acc.pth')))
+
 
         if param['debug']:
             test_dataset = AlconDataset(df=get_test_df(param['tabledir']).iloc[:param['batch size']],
@@ -337,13 +358,21 @@ def main():
 
 
         test_dataloader = DataLoader(test_dataset, batch_size=param['batch size'], num_workers=param['thread'],
-                                     pin_memory=False, drop_last=False)
+                                     pin_memory=False, drop_last=False, shuffle=False)
         logger.debug('test dataset size: {}'.format(len(test_dataset)))
         logger.debug('test loader size: {}'.format(len(test_dataloader)))
 
-        output_list = pred_alcon_rnn(model, test_dataloader, param['device'])
-        torch.save(output_list, os.path.join(outdir, 'prediction.pth'))
-        pd.DataFrame(output_list).drop('logit', axis=1).sort_values('ID').set_index('ID').to_csv(os.path.join(outdir, 'test_prediction.csv'))
+        test_logit_dict = dict()
+        init = True
+        for i in range(snapshot):
+            logger.debug('load weight  :  {}'.format(os.path.join(outdir, f'best_3acc_{i+1}.pth')))
+            model.load_state_dict(torch.load(os.path.join(outdir, f'best_3acc_{i+1}.pth')))
+            logit_alcon_rnn(model, test_dataloader, param['device'], test_logit_dict, div=snapshot, init=init)
+            init = False
+
+        torch.save(test_logit_dict, os.path.join(outdir, 'prediction.pth'))
+        output_list = make_submission(test_logit_dict)
+        pd.DataFrame(output_list).sort_values('ID').set_index('ID').to_csv(os.path.join(outdir, 'test_prediction.csv'))
         logger.debug('success!')
         logger.removeHandler(file_handler)
 
@@ -351,66 +380,67 @@ def main():
         gc.collect()
 
 
-    # Ensemble
-    print('======== Ensemble phase =========')
-    prediction_dict = dict()
-    mb = master_bar(param['fold'])
 
-    print('======== Load Vector =========')
-    for i, fold in enumerate(mb):
-        outdir = os.path.join(param['save path'], EXP_NAME, now_date,'fold{}'.format(fold))
-        prediction = torch.load(os.path.join(outdir, 'prediction.pth'))
-        # prediction is list
-        # prediction[0] = {'ID' : 0, 'logit' torch.tensor, ...}
-        if i == 0:
-            for preds in progress_bar(prediction, parent=mb):
-                prediction_dict[preds['ID']] = preds['logit'] / len(param['fold'])
-        else:
-            for preds in progress_bar(prediction, parent=mb):
-                prediction_dict[preds['ID']] += preds['logit'] / len(param['fold'])
-
-    outdir = os.path.join(param['save path'], EXP_NAME, now_date)
-
-    file_handler = logging.FileHandler(os.path.join(outdir, 'result.log'))
-    file_handler.setLevel(logging.DEBUG)
-    file_handler.setFormatter(handler_format)
-    logger.addHandler(file_handler)
-    logger.info(' ==========  RESULT  ========== \n')
-
-    cv = 0.0
-    train_data_size = 0
-    for fold in param['fold']:
-        acc = local_cv['fold{}'.format(fold)]['accuracy']
-        valid_size = local_cv['fold{}'.format(fold)]['valid_size']
-        train_data_size += valid_size
-        logger.info(' fold {} :  {:.3%} \n'.format(fold, acc))
-        cv += acc * valid_size
-    logger.info(' Local CV : {:.3%} \n'.format(cv / train_data_size))
-    logger.info(' ============================== \n')
-
-    logger.removeHandler(file_handler)
-
-
-    torch.save(prediction_dict, os.path.join(outdir, 'prediction.pth'))
-
-    print('======== make submittion file =========')
-    vocab = get_vocab(param['vocabdir'])
-    submit_list = list()
-    for ID, logits in progress_bar(prediction_dict.items()):
-        submit_dict = dict()
-        submit_dict["ID"] = ID
-        preds = logits.softmax(dim=1).argmax(dim=1)
-        submit_dict["Unicode1"] = vocab['index2uni'][preds[0]]
-        submit_dict["Unicode2"] = vocab['index2uni'][preds[1]]
-        submit_dict["Unicode3"] = vocab['index2uni'][preds[2]]
-        submit_list.append(submit_dict)
-    print()
-
-    pd.DataFrame(submit_list).sort_values('ID').set_index('ID').to_csv(os.path.join(outdir, 'test_prediction.csv'))
-
-    import zipfile
-    with zipfile.ZipFile(os.path.join(outdir,'submit_{}_{}.zip'.format(EXP_NAME, now_date)), 'w') as zf:
-        zf.write(os.path.join(outdir, 'test_prediction.csv'))
+    # # Ensemble
+    # print('======== Ensemble phase =========')
+    # prediction_dict = dict()
+    # mb = master_bar(param['fold'])
+    #
+    # print('======== Load Vector =========')
+    # for i, fold in enumerate(mb):
+    #     outdir = os.path.join(param['save path'], EXP_NAME, now_date,'fold{}'.format(fold))
+    #     prediction = torch.load(os.path.join(outdir, 'prediction.pth'))
+    #     # prediction is list
+    #     # prediction[0] = {'ID' : 0, 'logit' torch.tensor, ...}
+    #     if i == 0:
+    #         for preds in progress_bar(prediction, parent=mb):
+    #             prediction_dict[preds['ID']] = preds['logit'] / len(param['fold'])
+    #     else:
+    #         for preds in progress_bar(prediction, parent=mb):
+    #             prediction_dict[preds['ID']] += preds['logit'] / len(param['fold'])
+    #
+    # outdir = os.path.join(param['save path'], EXP_NAME, now_date)
+    #
+    # file_handler = logging.FileHandler(os.path.join(outdir, 'result.log'))
+    # file_handler.setLevel(logging.DEBUG)
+    # file_handler.setFormatter(handler_format)
+    # logger.addHandler(file_handler)
+    # logger.info(' ==========  RESULT  ========== \n')
+    #
+    # cv = 0.0
+    # train_data_size = 0
+    # for fold in param['fold']:
+    #     acc = local_cv['fold{}'.format(fold)]['accuracy']
+    #     valid_size = local_cv['fold{}'.format(fold)]['valid_size']
+    #     train_data_size += valid_size
+    #     logger.info(' fold {} :  {:.3%} \n'.format(fold, acc))
+    #     cv += acc * valid_size
+    # logger.info(' Local CV : {:.3%} \n'.format(cv / train_data_size))
+    # logger.info(' ============================== \n')
+    #
+    # logger.removeHandler(file_handler)
+    #
+    #
+    # torch.save(prediction_dict, os.path.join(outdir, 'prediction.pth'))
+    #
+    # print('======== make submittion file =========')
+    # vocab = get_vocab(param['vocabdir'])
+    # submit_list = list()
+    # for ID, logits in progress_bar(prediction_dict.items()):
+    #     submit_dict = dict()
+    #     submit_dict["ID"] = ID
+    #     preds = logits.softmax(dim=1).argmax(dim=1)
+    #     submit_dict["Unicode1"] = vocab['index2uni'][preds[0]]
+    #     submit_dict["Unicode2"] = vocab['index2uni'][preds[1]]
+    #     submit_dict["Unicode3"] = vocab['index2uni'][preds[2]]
+    #     submit_list.append(submit_dict)
+    # print()
+    #
+    # pd.DataFrame(submit_list).sort_values('ID').set_index('ID').to_csv(os.path.join(outdir, 'test_prediction.csv'))
+    #
+    # import zipfile
+    # with zipfile.ZipFile(os.path.join(outdir,'submit_{}_{}.zip'.format(EXP_NAME, now_date)), 'w') as zf:
+    #     zf.write(os.path.join(outdir, 'test_prediction.csv'))
 
     print('success!')
 
