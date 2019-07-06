@@ -68,3 +68,22 @@ def mixup_data(x, y, alpha=0.2, device="cpu"):
     mixed_x = lam * x + (1 - lam) * x[index, :]
     y_a, y_b = y, y[index]
     return mixed_x, y_a, y_b, lam
+
+
+def make_submission(prediction):
+    '''
+    :param prediction: dict {ID : logit}
+    :return: list
+    '''
+    submission_list = list()
+    vocab = get_vocab()
+    for index, logit in prediction.items():
+        pred_dict = dict()
+        pred = logit.softmax(dim=1)
+        pred_dict['ID'] = index
+        pred_dict['Unicode1'] = vocab['index2uni'][int(pred[0].argmax(dim=0).item())]
+        pred_dict['Unicode2'] = vocab['index2uni'][int(pred[1].argmax(dim=0).item())]
+        pred_dict['Unicode3'] = vocab['index2uni'][int(pred[2].argmax(dim=0).item())]
+        submission_list.append(pred_dict)
+
+    return submission_list

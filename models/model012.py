@@ -2,14 +2,14 @@ import torch
 import torch.nn as nn
 from .oct_resnet import *
 
-class OctResNetGRU2(nn.Module):
+class OctResNet152GRU2(nn.Module):
     def __init__(self, num_classes, hidden_size=512, bidirectional=False, dropout=0.5, load_weight=None):
-        super(OctResNetGRU2, self).__init__()
+        super(OctResNet152GRU2, self).__init__()
         self.num_classes = num_classes
         self.hidden_size = hidden_size
         self.bidirectional = bidirectional
 
-        self.resnet = oct_resnet50(pretrained=False, num_classes=48, zero_init_residual=True)
+        self.resnet = oct_resnet152(pretrained=False, num_classes=48, zero_init_residual=True)
         if load_weight is not None:
             self.resnet.load_state_dict(torch.load(load_weight))
         self.conv1 = self.resnet.conv1
@@ -71,7 +71,7 @@ class OctResNetGRU2(nn.Module):
 def test():
     # inputs = torch.FloatTensor(6, 3, 3,200, 200)
     inputs = torch.FloatTensor(16, 3, 3, 192 , 128)
-    model = OctResNetGRU2(48, 512, bidirectional=True)
+    model = OctResNet152GRU2(48, 512, bidirectional=True)
     model = model.to('cuda:0')
     inputs = inputs.to('cuda:0')
     logits = model(inputs)
