@@ -74,11 +74,11 @@ def main():
 
         param['batch size'] = max(param['batch size'], param['batch size'] * param['GPU'])
         if param['debug']:
-            train_dataset = AlconDataset(df=get_train_df(param['tabledir']).query('valid != @fold').iloc[:param['batch size']*30],
+            train_dataset = AlconDataset(df=get_train_df(param['tabledir']).query('valid != @fold').iloc[:param['batch size']*12],
                                          augmentation=get_train_augmentation(*get_resolution(param['resolution'])),
                                          datadir=os.path.join(param['dataroot'],'train','imgs'), mode='train')
 
-            valid_dataset = AlconDataset(df=get_train_df(param['tabledir']).query('valid == @fold').iloc[:param['batch size']*30],
+            valid_dataset = AlconDataset(df=get_train_df(param['tabledir']).query('valid == @fold').iloc[:param['batch size']*12],
                                          augmentation=get_test_augmentation(*get_resolution(param['resolution'])),
                                          datadir=os.path.join(param['dataroot'],'train','imgs'), mode='valid')
         else:
@@ -117,7 +117,7 @@ def main():
         optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9,
                                         weight_decay=1e-5, nesterov=False)
         # scheduler
-        scheduler = CosineAnnealingWarmUpRestarts(optimizer, T_0=len(train_dataloader)*5, T_mult=1, T_up=500, eta_max=0.1)
+
 
         model = model.to(param['device'])
         if param['GPU'] > 0:
@@ -137,7 +137,7 @@ def main():
             writer.add_text('data/hyperparam/{}'.format(key), str(val), 0)
 
 
-        mb = master_bar(range(10+5*5))
+
         snapshot=0
         snapshot_loss_list = list()
         snapshot_eval_list = list()
@@ -147,8 +147,15 @@ def main():
         snapshot_eval3 = 0.0
         val_iter = len(train_dataloader) // 3
 
+        cycle_iter = 5
+        snap_start = 0
+        n_snap = 3
+        mb = master_bar(range((n_snap+snap_start) * cycle_iter))
+        scheduler = CosineAnnealingWarmUpRestarts(optimizer, T_0=len(train_dataloader) * cycle_iter, T_mult=1, T_up=0,
+                                                  eta_max=0.1)
+
         for epoch in mb:
-            if epoch % 5 == 0 and epoch >= 0:
+            if epoch % cycle_iter == 0 and epoch >= snap_start * cycle_iter:
                 if snapshot > 1:
                     snapshot_loss_list.append(snapshot_loss)
                     snapshot_eval_list.append(snapshot_eval)
@@ -259,8 +266,8 @@ def main():
             logger.debug('acc(per 1 char) : train={:.3%}  , test={:.3%}'.format(avg_train_accuracy, avg_valid_accuracy))
             logger.debug('acc(per 3 char) : train={:.3%}  , test={:.3%}'.format(avg_three_train_acc, avg_three_valid_acc))
 
-            if epoch == 9:
-                torch.save(model.state_dict(), os.path.join(outdir, 'model_epoch10.pth'))
+            if epoch == cycle_iter * snap_start:
+                torch.save(model.state_dict(), os.path.join(outdir, f'model_epoch_{cycle_iter * snap_start}.pth'))
 
             if min_loss > avg_valid_loss:
                 logger.debug('update best loss:  {:.5f} ---> {:.5f}'.format(min_loss, avg_valid_loss))
@@ -313,13 +320,14 @@ def main():
         writer.close()
 
         # Local cv
-        mb = master_bar(range(snapshot))
-        target_list = ()
+
+        target_list = list()
         for _, targets, _ in valid_dataloader:
             targets = targets.argmax(dim=2)
             target_list.append(targets)
         target_list = torch.stack(target_list)
 
+        mb = master_bar(range(n_snap))
         valid_logit_dict = dict()
         init = True
         for i in mb:
