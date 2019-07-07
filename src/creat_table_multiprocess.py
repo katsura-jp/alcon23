@@ -18,9 +18,9 @@ import utils
 def main():
     os.makedirs('../input/tables', exist_ok=True)
     print('=== make train table ===')
-    creat_train_table()
+    # creat_train_table()
     print('=== make  test table ===')
-    creat_test_table()
+    # creat_test_table()
     print('=== make character table ===')
     creat_character_table()
 
@@ -138,7 +138,7 @@ def creat_character_table(seed=531):
     char_list = Parallel(n_jobs=-1)([delayed(process_char)(path, vocab, rarity) for path in tqdm(image_paths, total=len(image_paths))])
     
     meta = pd.DataFrame(char_list).sort_values('target')
-    skf = StratifiedKFold(n_splits=5, random_state=seed, shuffle=True)
+    skf = StratifiedKFold(n_splits=10, random_state=seed, shuffle=True)
     for k, (train_index, val_index) in enumerate(skf.split(meta.index, meta.rarity)):
         meta.loc[val_index, 'valid'] = k
 
