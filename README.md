@@ -52,6 +52,7 @@ Archive:  yoursubmission.zip
 | 4.5 (2019-06-28_02-06-42)    |          | 92.943% |         | ResNetGRU2 |   2 | MultiStepLR, momentumSGD,CutOut height//2 x width//2. 学習不十分かもしれない |
 | 4.6 (2019-06-30_07-33-17) |           | 92.710% |        | ResNetGRU3 |  2 | Grad clip(1.0) |
 | 4.7 (2019-07-01_15-10-22) |   | 94.062%  |  | OctResNetGRU2 | 6 |   |
+| 7.1 (2019-07-07_06-58-19) |    | 98.267% |   | OctResNetGRU2 | 6 | SSE(5epoch/cycle) CEL |
 
 ## メモ
 - resnet18,batch 128で16m / epoch
@@ -61,6 +62,8 @@ Archive:  yoursubmission.zip
 - HorizonFlipでも行けるかもしれない(反転しても同じものは存在しないため)
 - Attention Branch Networkを試して見たい（Wide ResNet, SENet, ResNeXtあたり) => 精度悪化
 - 残り1サブのみなので注意
+- SSE有効（5epoch/cycleだと足りないかも.でも5epochでもいいかも（？）)
+- SENet効かない
 
 ### 最終的なパイプライン
 1. KANAデータで事前学習(resnet, se_resnextあたり) (6月中) (解像度とCutoutを考慮したモデルを作成)
@@ -81,10 +84,8 @@ Archive:  yoursubmission.zip
 - Resolution Ensemble
 
 ## TODO
-- マイナーアップサンプリング
-- validデータ結果を最終的に出力する。
-- SSE用の実験コード作成
-- SEResNetとResNetの比較
+- PreActOctResNet
+- ShakeDrop
 
 ## Model(original)
 - 001: Encoder-Decoder ResNet(test model)
@@ -171,6 +172,12 @@ Archive:  yoursubmission.zip
 - Fast Geometric Ensembling
 - Stochastic Weight Averaging
 
+## Activation
+- ReLU
+- ELU
+- GELU
+- Swish
+- Erase ReLU
 
 #### Kind of mean
 - 算術平均

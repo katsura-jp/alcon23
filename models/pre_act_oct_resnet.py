@@ -1,7 +1,8 @@
 import torch
 import torch.nn as nn
 
-__all__ = ['OctResNet', 'oct_resnet26', 'oct_resnet50', 'oct_resnet101', 'oct_resnet152', 'oct_resnet200']
+__all__ = ['PreActOctResNet', 'pre_act_oct_resnet26', 'pre_act_oct_resnet50',
+            'pre_act_oct_resnet101', 'pre_act_oct_resnet152', 'pre_act_oct_resnet200']
 
 
 class OctaveConv(nn.Module):
@@ -45,6 +46,45 @@ class OctaveConv(nn.Module):
         else:
             return x_h2h, x_h2l
 
+class OctaveBatchNorm2d(nn.Module):
+    def __init__(self, in_channels, alpha=0.5, norm_layer=nn.BatchNorm2d):
+        super(OctaveBatchNorm2d, self).__init__()
+        self.bn_h = None if alpha == 1 else norm_layer(int(in_channels * (1 - alpha)))
+        self.bn_l = None if alpha == 0 else norm_layer(int(in_channels * alpha))
+    
+    def forward(self, x):
+        x_h, x_l = x if type(x) is tuple else (x, None)
+        if x_h is not None:
+            x_h = self.bn_h(x_h)
+        if x_l is not None:
+            x_l = self.bn_l(x_l)
+        return x_h, x_l
+
+
+class OctaveReLU(nn.Module):
+    def __init__(self, in_channels, alpha=0.5, norm_layer=nn.BatchNorm2d):
+        super(OctaveReLU, self).__init__()
+        self.relu = nn.ReLU(inplace=True)
+
+    def forward(self, x):
+        x_h, x_l = x if type(x) is tuple else (x, None)
+        x_h  = self.relu(x_h)
+        x_l = self.relu(x_l) if x_l is not None else None
+        return x_h, x_l
+
+class OctaveDropout2d(nn.Module):
+    def __init__(self, p=0.5):
+        super(OctaveDropout2d, self).__init__(self)
+        self.dropout = nn.Dropout2d(p=p)
+
+    def forward(self, x):
+        x_h, x_l = x if type(x) is tuple else (x, None)
+        x_h = self.dropout(x_h)
+        x_l = self.dropout(x_l) if x_l is not None else None
+        return x_h, x_l
+
+
+#######################
 
 class Conv_BN(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, alpha_in=0.5, alpha_out=0.5, stride=1, padding=0, dilation=1,
@@ -77,6 +117,8 @@ class Conv_BN_ACT(nn.Module):
         x_h = self.act(self.bn_h(x_h))
         x_l = self.act(self.bn_l(x_l)) if x_l is not None else None
         return x_h, x_l
+
+###################
 
 
 class BasicBlock(nn.Module):
@@ -113,34 +155,53 @@ class BasicBlock(nn.Module):
         return x_h, x_l
 
 
-        return x_h
-
-
 class Bottleneck(nn.Module):
     expansion = 4
 
     def __init__(self, inplanes, planes, stride=1, downsample=None, groups=1,
-                 base_width=64, alpha_in=0.5, alpha_out=0.5, norm_layer=None, output=False):
+                 base_width=64, alpha_in=0.5, alpha_out=0.5, norm_layer=None, output=False, dropout=None):
         super(Bottleneck, self).__init__()
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
         width = int(planes * (base_width / 64.)) * groups
-        # Both self.conv2 and self.downsample layers downsample the input when stride != 1
-        self.conv1 = Conv_BN_ACT(inplanes, width, kernel_size=1, alpha_in=alpha_in, alpha_out=alpha_out, norm_layer=norm_layer)
-        self.conv2 = Conv_BN_ACT(width, width, kernel_size=3, stride=stride, padding=1, groups=groups, norm_layer=norm_layer,
-                                 alpha_in=0 if output else 0.5, alpha_out=0 if output else 0.5)
-        self.conv3 = Conv_BN(width, planes * self.expansion, kernel_size=1, norm_layer=norm_layer,
-                             alpha_in=0 if output else 0.5, alpha_out=0 if output else 0.5)
-        self.relu = nn.ReLU(inplace=True)
+
         self.downsample = downsample
         self.stride = stride
 
-    def forward(self, x):
-        identity_h = x[0] if type(x) is tuple else x
-        identity_l = x[1] if type(x) is tuple else None
 
-        x_h, x_l = self.conv1(x)
+        self.bn1 = OctaveBatchNorm2d(inplanes, alpha_in)
+        self.relu = nn.ReLU(inplace=True)
+        self.conv1 = OctaveConv(inplanes, width, kernel_size=1,
+                                bias=False, alpha_in=alpha_in, alpha_out=alpha_out)
+        self.bn2 = OctaveBatchNorm2d(width, alpha_out)
+        self.conv2 = OctaveConv(width, width, kernel_size=3, stride=stride, padding=1, bias=False, groups=groups,
+                                alpha_in=0 if output else 0.5, alpha_out=0 if output else 0.5)
+        self.bn3 = OctaveBatchNorm2d(width, alpha=0 if output else 0.5)
+        self.conv3 = OctaveConv(width, planes * self.expansion, kernel_size=1, bias=False,
+                                alpha_in=0 if output else 0.5, alpha_out=0 if output else 0.5)
+        
+        self.dropout = nn.Dropout2d(p=dropout) if dropout is not None else None
+
+    def forward(self, x):
+        x_h, x_l = self.bn1(x)
+        x_h = self.relu(x_h)
+        x_l = self.relu(x_l) if x_l is not None else None
+
+        identity_h = x_h
+        identity_l = x_l
+
+        x_h, x_l = self.conv1((x_h, x_l))
+
+        x_h, x_l = self.bn2((x_h, x_l))
+        x_h  = self.relu(x_h)
+        x_l = self.relu(x_l) if x_l is not None else None
         x_h, x_l = self.conv2((x_h, x_l))
+
+        x_h, x_l = self.bn3((x_h, x_l))
+        x_h  = self.relu(x_h)
+        x_l = self.relu(x_l) if x_l is not None else None
+        x_h = self.dropout(x_h) if self.dropout is not None else x_h
+        x_l = self.dropout(x_l) if self.dropout is not None else x_l
         x_h, x_l = self.conv3((x_h, x_l))
 
         if self.downsample is not None:
@@ -149,20 +210,16 @@ class Bottleneck(nn.Module):
         x_h += identity_h
         x_l = x_l + identity_l if identity_l is not None else None
 
-        x_h = self.relu(x_h)
         x_l = self.relu(x_l) if x_l is not None else None
 
         return x_h, x_l
 
 
-        return x_h
-
-
-class OctResNet(nn.Module):
+class PreActOctResNet(nn.Module):
 
     def __init__(self, block, layers, num_classes=1000, zero_init_residual=False,
                  groups=1, width_per_group=64, norm_layer=None):
-        super(OctResNet, self).__init__()
+        super(PreActOctResNet, self).__init__()
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
 
@@ -194,24 +251,23 @@ class OctResNet(nn.Module):
         if zero_init_residual:
             for m in self.modules():
                 if isinstance(m, Bottleneck):
-                    if m.conv3.bn_h is not None:
-                        nn.init.constant_(m.conv3.bn_h.weight, 0)
-                    if m.conv3.bn_l is not None:
-                        nn.init.constant_(m.conv3.bn_l.weight, 0)
+                    if m.bn3.bn_h is not None:
+                        nn.init.constant_(m.bn3.bn_h.weight, 0)
+                    if m.bn3.bn_l is not None:
+                        nn.init.constant_(m.bn3.bn_l.weight, 0)
                 elif isinstance(m, BasicBlock):
                     if m.conv2.bn_h is not None:
                         nn.init.constant_(m.conv2.bn_h.weight, 0)
                     if m.conv2.bn_l is not None:
                         nn.init.constant_(m.conv2.bn_l.weight, 0)
 
-    def _make_layer(self, block, planes, blocks, stride=1, alpha_in=0.5, alpha_out=0.5, norm_layer=None, output=False):
+    def _make_layer(self, block, planes, blocks, stride=1, alpha_in=0.5, alpha_out=0.5, norm_layer=None, output=False, dropout=None):
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
         downsample = None
         if stride != 1 or self.inplanes != planes * block.expansion:
-            downsample = nn.Sequential(
-                Conv_BN(self.inplanes, planes * block.expansion, kernel_size=1, stride=stride, alpha_in=alpha_in, alpha_out=alpha_out)
-            )
+            downsample = OctaveConv(self.inplanes, planes * block.expansion, kernel_size=1,
+                                        stride=stride, alpha_in=alpha_in, alpha_out=alpha_out)
 
         layers = []
         layers.append(block(self.inplanes, planes, stride, downsample, self.groups,
@@ -226,10 +282,7 @@ class OctResNet(nn.Module):
 
     def forward(self, x):
         x = self.conv1(x)
-        x = self.bn1(x)
-        x = self.relu(x)
         x = self.maxpool(x)
-
         x_h, x_l = self.layer1(x)
         x_h, x_l = self.layer2((x_h,x_l))
         x_h, x_l = self.layer3((x_h,x_l))
@@ -241,59 +294,59 @@ class OctResNet(nn.Module):
         return x
 
 
-def oct_resnet26(pretrained=False, **kwargs):
+def pre_act_oct_resnet26(pretrained=False, **kwargs):
     """Constructs a Octave ResNet-26 model.
 
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    model = OctResNet(Bottleneck, [2, 2, 2, 2], **kwargs)
+    model = PreActOctResNet(Bottleneck, [2, 2, 2, 2], **kwargs)
     return model
 
 
-def oct_resnet50(pretrained=False, **kwargs):
+def pre_act_oct_resnet50(pretrained=False, **kwargs):
     """Constructs a Octave ResNet-50 model.
 
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    model = OctResNet(Bottleneck, [3, 4, 6, 3], **kwargs)
+    model = PreActOctResNet(Bottleneck, [3, 4, 6, 3], **kwargs)
     return model
 
 
-def oct_resnet101(pretrained=False, **kwargs):
+def pre_act_oct_resnet101(pretrained=False, **kwargs):
     """Constructs a Octave ResNet-101 model.
 
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    model = OctResNet(Bottleneck, [3, 4, 23, 3], **kwargs)
+    model = PreActOctResNet(Bottleneck, [3, 4, 23, 3], **kwargs)
     return model
 
 
-def oct_resnet152(pretrained=False, **kwargs):
+def pre_act_oct_resnet152(pretrained=False, **kwargs):
     """Constructs a Octave ResNet-152 model.
 
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    model = OctResNet(Bottleneck, [3, 8, 36, 3], **kwargs)
+    model = PreActOctResNet(Bottleneck, [3, 8, 36, 3], **kwargs)
     return model
 
 
-def oct_resnet200(pretrained=False, **kwargs):
+def pre_act_oct_resnet200(pretrained=False, **kwargs):
     """Constructs a Octave ResNet-200 model.
 
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    model = OctResNet(Bottleneck, [3, 24, 36, 3], **kwargs)
+    model = PreActOctResNet(Bottleneck, [3, 24, 36, 3], **kwargs)
     return model
 
 
 def test():
     inputs = torch.FloatTensor(4, 3, 256, 256)
-    model = oct_resnet50()
+    model = pre_act_oct_resnet50(zero_init_residual=True)
     print(model(inputs).shape)
 
 

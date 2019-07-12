@@ -8,6 +8,8 @@ from .model008 import ResNetGRU2
 from .model009 import ResNetGRU3
 from .model010 import OctResNetGRU2
 from .model011 import SEResNeXtGRU2
+from .model012 import OctResNet152GRU2
+from .model013 import PreActOctResNetGRU2
 
 from .inceptionv4 import *
 from .senet import *
