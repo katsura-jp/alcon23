@@ -18,9 +18,9 @@ import utils
 def main():
     os.makedirs('../input/tables', exist_ok=True)
     print('=== make train table ===')
-    creat_train_table()
+    # creat_train_table()
     print('=== make  test table ===')
-    creat_test_table()
+    # creat_test_table()
     print('=== make character table ===')
     creat_character_table()
 
