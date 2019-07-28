@@ -3,7 +3,7 @@
 
 ## 概要
 - 公式HP: https://sites.google.com/view/alcon2019/%E3%83%9B%E3%83%BC%E3%83%A0?authuser=0
-- 提出場所: https://competitions.codalab.org/competitions/23101#participate-submit_results
+- 提出場所: https://competitions.codalab.org/competitions/20388?secret_key=88458b35-8673-44c2-9bd6-17586adcf5a1
 - 期間: 2019/05/31 ~ 2019/08/31
 
 ## 手順
@@ -53,6 +53,16 @@ Archive:  yoursubmission.zip
 | 4.6 (2019-06-30_07-33-17) |           | 92.710% |        | ResNetGRU3 |  2 | Grad clip(1.0) |
 | 4.7 (2019-07-01_15-10-22) |   | 94.062%  |  | OctResNetGRU2 | 6 |   |
 | 7.1 (2019-07-07_06-58-19) |    | 98.267% |   | OctResNetGRU2 | 6 | SSE(5epoch/cycle) CEL |
+
+### EXP-7
+| fold | Local CV | file |
+| :--: | :--:     | :--  |
+| 0    | 98.255402% | /mnt/hdd1/alcon2019/exp7/2019-07-13_12-25-44/fold0/ |
+| 1    | 98.342150% | /mnt/hdd1/alcon2019/exp7/2019-07-13_12-25-44/fold1/ |
+| 2    | 98.308331% | /mnt/hdd1/alcon2019/exp7/2019-07-18_10-17-48/fold2/ |
+| 3    | 98.041016% | /mnt/hdd1/alcon2019/exp7/2019-07-22_13-55-51/fold3/ |
+| 4    | 98.206913% | /mnt/hdd1/alcon2019/exp7/2019-07-22_13-55-51/fold4/ |
+
 
 ## メモ
 - resnet18,batch 128で16m / epoch
