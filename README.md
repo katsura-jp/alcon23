@@ -36,8 +36,26 @@ Archive:  yoursubmission.zip
    357417                     1 file
 ```
 
+## Result
 
-## 結果
+### Public Result
+
+| exp  | Public score |
+| :--: | ------------ |
+|  7   | 94.7000%     |
+|  8   |              |
+|  9   |              |
+|  10  |              |
+|  11  |              |
+
+
+
+
+
+### Local Result
+
+---
+
 | exp No. | Local CV | fold0  | Public  | model   | resolution | comment |
 | ------: | -------: | -----: | ------: | :------ | ------:    | :------ |
 | 0       |  87.391% |        |         |         |            | test example. only fold0. |
@@ -61,7 +79,7 @@ Archive:  yoursubmission.zip
 #### Detail
 
 - Model : OctConv ResNet50 + BiGRU x 2
-- Batch Size: 16
+- Batch Size: 16 (about 6000 iter / epoch)
 - Resolution: 6 (192 x 128  <--- 210 x 150)
 - FP32
 - SGDR(5epoch / cycle)
@@ -77,11 +95,66 @@ Archive:  yoursubmission.zip
 | 3    | 98.041016% | /mnt/hdd1/alcon2019/exp7/2019-07-22_13-55-51/fold3/ |
 | 4    | 98.206913% | /mnt/hdd1/alcon2019/exp7/2019-07-22_13-55-51/fold4/ |
 
-Public score: 94.7000%
+- Public score: 94.7000%
+
+
+
+### EXP-8
+
+---
+
+ #### Detail
+
+- Model : DenseNet201(pre-train ImageNet) + BiGRU x 2
+- Batch Size : 42 (about 2000 iter / epoch)
+- Resolution : 6 (192 x 128  <--- 210 x 150)
+- Mixed-Precision Training (optim level '01')
+- SGDR(5epoch / cycle)
+- 3~9cycle (7cycle) で SnapShot Ensemble
+
+#### Result
+
+| fold | Local CV | file |
+| :--: | :------: | :--- |
+|  0   |          |      |
+|  1   |          |      |
+|  2   |          |      |
+|  3   |          |      |
+|  4   |          |      |
+
+- Public score: 
+
+
+
+### EXP-9
+
+------
+
+#### Detail
+
+- Model : Inception-v4(pre-train ImageNet) + BiGRU x 2
+- Batch Size : 
+- Resolution : 6 (192 x 128  <--- 210 x 150)
+- Mixed-Precision Training (optim level '01')
+- SGDR(5epoch / cycle)
+- 3~9cycle (7cycle) で SnapShot Ensemble
+
+#### Result
+
+| fold | Local CV | file |
+| :--: | :------: | :--- |
+|  0   |          |      |
+|  1   |          |      |
+|  2   |          |      |
+|  3   |          |      |
+|  4   |          |      |
+
+- Public score: 
 
 
 
 ## メモ
+
 - resnet18,batch 128で16m / epoch
 - se_resnext101+LSTM(unidirect)でK80(VRAM 11GB) 2枚だと(336x224)でbatch 16/GPUでOOM。4~ hour/epoch
 - 30epochあれば十分かもしれない
