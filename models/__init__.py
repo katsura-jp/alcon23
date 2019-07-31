@@ -11,6 +11,8 @@ from .model011 import SEResNeXtGRU2
 from .model012 import OctResNet152GRU2
 from .model013 import PreActOctResNetGRU2
 from .model014 import DenseNet201GRU2
+from .model015 import InceptionV4GRU2
+
 
 from .inceptionv4 import *
 from .senet import *

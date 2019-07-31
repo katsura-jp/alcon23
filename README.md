@@ -124,6 +124,12 @@ Public score: 94.7000%
 - 007: ResNet50+LSTM+Attention Branch Network
 - 008: ResNet50+GRUx2
 - 009: ResNet50+GRUx3
+- 010: OctConv ResNet50 + BiGRUx2
+- 011: SEResNeXt101 + BiGRUx2
+- 012: OctResNet152 + BiGRUx2
+- 013: OctConv PreAct ResNet50(Miss Implementation) + BiGRUx2
+- 014: DenseNet201 + BiGRUx2
+- 015: Inception-v4 + BiGRUx2 
 
 ## Model(backbone use)
 - ResNet-18,34,50,101,152(5~7 day/model)
