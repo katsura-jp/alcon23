@@ -179,7 +179,6 @@ def main():
                 loss.backward()
                 # torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
                 optimizer.step()
-                optimizer.step()
                 avg_train_loss += loss.item()
                 _avg_accuracy = eval_fn(preds, targets.argmax(dim=2)).item()
                 avg_train_accuracy += _avg_accuracy
