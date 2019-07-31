@@ -5,11 +5,14 @@ import gc
 import yaml
 import datetime
 import logging
+import math
 
 import torch.nn as nn
 from torch.utils.data import DataLoader
 import tensorboardX as tbx
 from fastprogress import progress_bar, master_bar
+import apex.amp as amp
+
 
 from models import *
 from src.augmentation import get_test_augmentation, get_train_augmentation
@@ -107,7 +110,7 @@ def main():
         logger.debug('valid loader size: {}'.format(len(valid_dataloader)))
 
         # model
-        model = OctResNetGRU2(num_classes=48, hidden_size=512, bidirectional=True, load_weight=None, dropout=param['dropout'])
+        model = DenseNet201GRU2(num_classes=48, hidden_size=512, bidirectional=True, load_weight=None, dropout=param['dropout'])
 
 
 
@@ -120,6 +123,7 @@ def main():
 
 
         model = model.to(param['device'])
+        model, optimizer = amp.initialize(model, optimizer, opt_level="O1")
         if param['GPU'] > 0:
             model = nn.DataParallel(model)
 
@@ -138,20 +142,26 @@ def main():
 
 
 
+        max_char_acc = -1e-5
+        max_3char_acc = -1e-5
+        min_loss = 1e+5
+
         snapshot=0
         snapshot_loss_list = list()
         snapshot_eval_list = list()
         snapshot_eval3_list = list()
-        snapshot_loss = 10 ** 5
-        snapshot_eval = 0.0
-        snapshot_eval3 = 0.0
-        val_iter = len(train_dataloader) // 3
-
+        snapshot_loss = 1e+5
+        snapshot_eval = -1e-5
+        snapshot_eval3 = -1e-5
+        val_iter = math.ceil(len(train_dataloader) / 3)
+        print('val_iter: {}'.format(val_iter))
+        # Hyper params
         cycle_iter = 5
-        snap_start = 0
-        n_snap = 3
+        snap_start = 2
+        n_snap = 8
+
         mb = master_bar(range((n_snap+snap_start) * cycle_iter))
-        scheduler = CosineAnnealingWarmUpRestarts(optimizer, T_0=len(train_dataloader) * cycle_iter, T_mult=1, T_up=0,
+        scheduler = CosineAnnealingWarmUpRestarts(optimizer, T_0=len(train_dataloader) * cycle_iter, T_mult=1, T_up=500,
                                                   eta_max=0.1)
 
         for epoch in mb:
@@ -176,7 +186,9 @@ def main():
                 logits = model(inputs)  # logits.size() = (batch*3, 48)
                 preds = logits.view(targets.size(0), 3, -1).softmax(dim=2)
                 loss = loss_fn(logits, targets.view(-1, targets.size(2)).argmax(dim=1))
-                loss.backward()
+                with amp.scale_loss(loss, optimizer) as scaled_loss:
+                    scaled_loss.backward()
+                # loss.backward()
                 # torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
                 optimizer.step()
                 avg_train_loss += loss.item()

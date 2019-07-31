@@ -1,4 +1,4 @@
-batch size: 16
+batch size: 40
 device: cuda:0
 dataroot: /mnt/hdd1/alcon2019/input/dataset/
 vocabdir: /mnt/hdd1/alcon2019/input/vocab/
@@ -9,5 +9,5 @@ thread: 16
 debug: False
 dropout: 0.5
 seed: 2019
-fold: [3,4]
+fold: [0]
 resolution: 6
