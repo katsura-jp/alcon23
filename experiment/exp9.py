@@ -342,7 +342,8 @@ def main():
         valid_logit_dict = dict()
         init = True
         for i in mb:
-            model.load_state_dict(torch.load(os.path.join(outdir, f'best_3acc_{i+1}.pth')))
+            # model.load_state_dict(torch.load(os.path.join(outdir, f'best_3acc_{i+1}.pth')))
+            model.load_state_dict(torch.load(os.path.join(outdir, f'best_loss_{i+1}.pth')))
             logit_alcon_rnn(model, valid_dataloader, param['device'], valid_logit_dict, div=snapshot, init=init)
             init = False
 
@@ -384,8 +385,10 @@ def main():
         test_logit_dict = dict()
         init = True
         for i in range(snapshot):
-            logger.debug('load weight  :  {}'.format(os.path.join(outdir, f'best_3acc_{i+1}.pth')))
-            model.load_state_dict(torch.load(os.path.join(outdir, f'best_3acc_{i+1}.pth')))
+            # logger.debug('load weight  :  {}'.format(os.path.join(outdir, f'best_3acc_{i+1}.pth')))
+            # model.load_state_dict(torch.load(os.path.join(outdir, f'best_3acc_{i+1}.pth')))
+            logger.debug('load weight  :  {}'.format(os.path.join(outdir, f'best_loss_{i+1}.pth')))
+            model.load_state_dict(torch.load(os.path.join(outdir, f'best_loss_{i+1}.pth')))
             logit_alcon_rnn(model, test_dataloader, param['device'], test_logit_dict, div=snapshot, init=init)
             init = False
 

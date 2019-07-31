@@ -84,6 +84,7 @@ Archive:  yoursubmission.zip
 - FP32
 - SGDR(5epoch / cycle)
 - 3~7cycle (5cycle) で SnapShot Ensemble
+- total epoch: 35
 
 #### Result
 
@@ -106,21 +107,22 @@ Archive:  yoursubmission.zip
  #### Detail
 
 - Model : DenseNet201(pre-train ImageNet) + BiGRU x 2
-- Batch Size : 42 (about 2000 iter / epoch)
+- Batch Size : 40 (about 2000 iter / epoch)
 - Resolution : 6 (192 x 128  <--- 210 x 150)
 - Mixed-Precision Training (optim level '01')
 - SGDR(5epoch / cycle)
-- 3~9cycle (7cycle) で SnapShot Ensemble
+- 3~10cycle (8cycle) で SnapShot Ensemble
+- Total epoch: 50
 
 #### Result
 
-| fold | Local CV | file |
-| :--: | :------: | :--- |
-|  0   |          |      |
-|  1   |          |      |
-|  2   |          |      |
-|  3   |          |      |
-|  4   |          |      |
+| fold | Local CV | file                                                |
+| :--: | :------: | :-------------------------------------------------- |
+|  0   |          | /mnt/hdd1/alcon2019/exp8/2019-07-31_01-30-12/fold0/ |
+|  1   |          |                                                     |
+|  2   |          |                                                     |
+|  3   |          |                                                     |
+|  4   |          |                                                     |
 
 - Public score: 
 
@@ -137,7 +139,36 @@ Archive:  yoursubmission.zip
 - Resolution : 6 (192 x 128  <--- 210 x 150)
 - Mixed-Precision Training (optim level '01')
 - SGDR(5epoch / cycle)
-- 3~9cycle (7cycle) で SnapShot Ensemble
+- 3~10cycle (8cycle) で SnapShot Ensemble
+- Total epoch: 50
+
+#### Result
+
+| fold | Local CV | file |
+| :--: | :------: | :--- |
+|  0   |          |      |
+|  1   |          |      |
+|  2   |          |      |
+|  3   |          |      |
+|  4   |          |      |
+
+- Public score: 
+
+
+
+### EXP-10
+
+------
+
+#### Detail
+
+- Model : SEResNeXt-101(pre-train ImageNet) + BiGRU x 2
+- Batch Size : 
+- Resolution : 6 (192 x 128  <--- 210 x 150)
+- Mixed-Precision Training (optim level '01')
+- SGDR(5epoch / cycle)
+- 3~10cycle (8cycle) で SnapShot Ensemble
+- Total epoch: 50
 
 #### Result
 
@@ -166,11 +197,31 @@ Archive:  yoursubmission.zip
 - SENet効かない
 
 ### 最終的なパイプライン
-1. KANAデータで事前学習(resnet, se_resnextあたり) (6月中) (解像度とCutoutを考慮したモデルを作成)
-2. low resolution(backbone+(Residual LSTM or GRU (bidirectional)))で学習,推論 (7月末まで)
-3. Pseudo Labeling (7月末まで)
-4. high resolution + SSE で学習、推論 (8/28まで)
-5. Post Processing(Ensemble) (8/31まで)
+1. Resolution 6で学習
+2. Exp-7, 8, 9, 10(OctResNet-50+DenseNet-201+Inception-v4+SE-ResNeXt-101)でのアンサンブル
+3. 時間があれば、Pseudo-Labeling
+
+
+
+スケジュール
+
+| 日付                    | やること                        |
+| ----------------------- | ------------------------------- |
+| 2019/08/01 ~ 2019/08/05 | Exp-8                           |
+| 2019/08/06 ~ 2019/08/10 | Exp-9                           |
+| 2019/08/11 ~ 2019/08/15 | Exp-10                          |
+| 2019/08/16 ~ 2019/08/17 | Pseudo-Label 作成               |
+| 2019/08/18 ~ 2019/08/23 | Exp-7(Pseudo-Labeling Training) |
+| 2019/08/24 ~ 2019/08/30 | Exp-8(Pseudo-Labeling Training) |
+| 2019/08/31              | 最終日                          |
+
+memo
+
+Pseudo-Labelingの方が訓練データが大きので学習に時間がかかる。
+
+時間が足りないのでクラウド使う。
+
+
 
 #### 学習時のテクニック
 - Dropout
