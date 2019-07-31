@@ -4,6 +4,7 @@ from albumentations.pytorch import ToTensor
 
 def get_train_augmentation(height=336, width=224, scale_height=384, scale_width=256):
     train_augmentation = albu.Compose([
+        # albu.HorizontalFlip(),
         albu.OneOf([
             albu.RandomBrightness(0.1, p=1),
             albu.RandomContrast(0.1, p=1)
