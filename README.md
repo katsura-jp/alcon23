@@ -63,6 +63,7 @@ Archive:  yoursubmission.zip
 | 3    | 98.041016% | /mnt/hdd1/alcon2019/exp7/2019-07-22_13-55-51/fold3/ |
 | 4    | 98.206913% | /mnt/hdd1/alcon2019/exp7/2019-07-22_13-55-51/fold4/ |
 
+Public score: 94.7000%
 
 ## メモ
 - resnet18,batch 128で16m / epoch
