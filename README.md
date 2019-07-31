@@ -55,6 +55,20 @@ Archive:  yoursubmission.zip
 | 7.1 (2019-07-07_06-58-19) |    | 98.267% |   | OctResNetGRU2 | 6 | SSE(5epoch/cycle) CEL |
 
 ### EXP-7
+
+---
+
+#### Detail
+
+- Model : OctConv ResNet50 + BiGRU x 2
+- Batch Size: 16
+- Resolution: 6 (192 x 128  <--- 210 x 150)
+- FP32
+- SGDR(5epoch / cycle)
+- 3~7cycle (5cycle) で SnapShot Ensemble
+
+#### Result
+
 | fold | Local CV | file |
 | :--: | :--:     | :--  |
 | 0    | 98.255402% | /mnt/hdd1/alcon2019/exp7/2019-07-13_12-25-44/fold0/ |
@@ -64,6 +78,8 @@ Archive:  yoursubmission.zip
 | 4    | 98.206913% | /mnt/hdd1/alcon2019/exp7/2019-07-22_13-55-51/fold4/ |
 
 Public score: 94.7000%
+
+
 
 ## メモ
 - resnet18,batch 128で16m / epoch
