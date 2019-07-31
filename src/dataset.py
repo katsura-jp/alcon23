@@ -71,8 +71,8 @@ class AlconDataset(Dataset):
                 split2 = self.df.loc[_index, 'split2']
                 margin = self.df.loc[_index, 'margin']
                 if self.margin_augmentation:
-                    split1 += np.random.randint(-margin, margin)
-                    split2 += np.random.randint(-margin, margin)
+                    split1 += np.random.randint(-margin//2, margin//2)
+                    split2 += np.random.randint(-margin//2, margin//2)
                 img1 = image[:split1 + margin, :, :]
                 img2 = image[split1 - margin:split2 + margin, :, :]
                 img3 = image[split2 - margin:, :, :]
@@ -126,10 +126,10 @@ class AlconDataset(Dataset):
                 for i, img in enumerate([img1, img2, img3]):
                     images.append(self.augmentation(image=img)['image'].numpy())
                 images = torch.from_numpy(np.array(images))
-                return images, _index
+                return images, 0, _index
             else:
                 image = self.augmentation(image=image)['image']
-                return image, _index
+                return image, 0, _index
 
 
     def set_augmentation(self, augmentation):

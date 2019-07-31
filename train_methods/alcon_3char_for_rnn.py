@@ -80,7 +80,7 @@ def pred_alcon_rnn(model, dataloader, device):
 
     model.eval()
     with torch.no_grad():
-        for step, (inputs, indices) in enumerate(dataloader):
+        for step, (inputs, _,  indices) in enumerate(dataloader):
             inputs = inputs.to(device)
             logits = model(inputs) # logits.size() = (batch*3, 48)
             logits = logits.view(inputs.size(0), 3, -1) # logits.size() = (batch, 3, 48)
@@ -104,7 +104,7 @@ def logit_alcon_rnn(model, dataloader, device, prediction, div=1, init=True):
     model.eval()
 
     with torch.no_grad():
-        for step, (inputs, indices) in enumerate(dataloader):
+        for step, (inputs, _, indices) in enumerate(dataloader):
             inputs = inputs.to(device)
             logits = model(inputs) # logits.size() = (batch*3, 48)
             logits = logits.view(inputs.size(0), 3, -1) # logits.size() = (batch, 3, 48)
