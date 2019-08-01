@@ -135,7 +135,7 @@ Archive:  yoursubmission.zip
 #### Detail
 
 - Model : Inception-v4(pre-train ImageNet) + BiGRU x 2
-- Batch Size : 
+- Batch Size : 180 (530~540 iter / epoch)
 - Resolution : 6 (192 x 128  <--- 210 x 150)
 - Mixed-Precision Training (optim level '01')
 - SGDR(5epoch / cycle)
@@ -144,13 +144,13 @@ Archive:  yoursubmission.zip
 
 #### Result
 
-| fold | Local CV | file |
-| :--: | :------: | :--- |
-|  0   |          |      |
-|  1   |          |      |
-|  2   |          |      |
-|  3   |          |      |
-|  4   |          |      |
+| fold | Local CV | file                                               |
+| :--: | :------: | :------------------------------------------------- |
+|  0   |          | /mnt/hdd1/alcon2019/exp9/2019-08-01_01-41-16/fold0 |
+|  1   |          |                                                    |
+|  2   |          |                                                    |
+|  3   |          |                                                    |
+|  4   |          |                                                    |
 
 - Public score: 
 
