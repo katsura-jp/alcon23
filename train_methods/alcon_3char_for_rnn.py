@@ -112,6 +112,6 @@ def logit_alcon_rnn(model, dataloader, device, prediction, div=1, init=True):
             for i in range(inputs.size(0)):
                 index = indices[i]
                 if init:
-                    prediction[int(index.item())] = logits[i].detach().to('cpu') / div
+                    prediction[int(index.item())] = logits[i].detach().to('cpu').type(torch.float32) / div
                 else:
-                    prediction[int(index.item())] += logits[i].detach().to('cpu') / div
+                    prediction[int(index.item())] += logits[i].detach().to('cpu').type(torch.float32) / div
