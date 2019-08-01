@@ -446,10 +446,6 @@ def main():
 
     submit_list = make_submission(emsemble_prediction)
     pd.DataFrame(submit_list).sort_values('ID').set_index('ID').to_csv(os.path.join(outdir, 'test_prediction.csv'))
-    #
-    import zipfile
-    with zipfile.ZipFile(os.path.join(outdir,'submit_{}_{}.zip'.format(EXP_NAME, now_date)), 'w') as zf:
-        zf.write(os.path.join(outdir, 'test_prediction.csv'))
 
     print('success!')
 

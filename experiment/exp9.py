@@ -336,26 +336,23 @@ def main():
         for _, targets, _ in valid_dataloader:
             targets = targets.argmax(dim=2)
             target_list.append(targets)
-        target_list = torch.stack(target_list)
+        target_list = torch.cat(target_list)
 
         mb = master_bar(range(n_snap))
         valid_logit_dict = dict()
         init = True
         for i in mb:
-            # model.load_state_dict(torch.load(os.path.join(outdir, f'best_3acc_{i+1}.pth')))
-            model.load_state_dict(torch.load(os.path.join(outdir, f'best_loss_{i+1}.pth')))
-            logit_alcon_rnn(model, valid_dataloader, param['device'], valid_logit_dict, div=snapshot, init=init)
+            model.load_state_dict(torch.load(os.path.join(outdir, f'best_3acc_{i+1}.pth')))
+            logit_alcon_rnn(model, valid_dataloader, param['device'], valid_logit_dict, div=n_snap, init=init)
             init = False
-
 
         pred_list = torch.stack(list(valid_logit_dict.values()))
         pred_list = pred_list.softmax(dim=2)
         local_accuracy = accuracy_three_character(pred_list, target_list)
         logger.debug('LOCAL CV : {:5%}'.format(local_accuracy))
-        torch.save(valid_logit_dict,os.path.join(outdir, f'fold{fold}_valid_logit.pth'))
+        torch.save(valid_logit_dict, os.path.join(outdir, f'fold{fold}_valid_logit.pth'))
 
-        local_cv['fold{}'.format(fold)] = {'accuracy' : local_accuracy, 'valid_size' : len(valid_dataset)}
-
+        local_cv['fold{}'.format(fold)] = {'accuracy': local_accuracy, 'valid_size': len(valid_dataset)}
 
         del train_dataset, valid_dataset
         del train_dataloader, valid_dataloader
@@ -363,19 +360,16 @@ def main():
         del valid_logit_dict, target_list
         gc.collect()
 
-
         logger.debug('=========== Prediction phrase ===========')
 
-
         if param['debug']:
-            test_dataset = AlconDataset(df=get_test_df(param['tabledir']).iloc[:param['batch size']],
+            test_dataset = AlconDataset(df=get_test_df(param['tabledir']).iloc[:param['batch size'] * 12],
                                         augmentation=get_test_augmentation(*get_resolution(param['resolution'])),
                                         datadir=os.path.join(param['dataroot'], 'test', 'imgs'), mode='test')
         else:
             test_dataset = AlconDataset(df=get_test_df(param['tabledir']),
                                         augmentation=get_test_augmentation(*get_resolution(param['resolution'])),
                                         datadir=os.path.join(param['dataroot'], 'test', 'imgs'), mode='test')
-
 
         test_dataloader = DataLoader(test_dataset, batch_size=param['batch size'], num_workers=param['thread'],
                                      pin_memory=False, drop_last=False, shuffle=False)
@@ -384,12 +378,10 @@ def main():
 
         test_logit_dict = dict()
         init = True
-        for i in range(snapshot):
-            # logger.debug('load weight  :  {}'.format(os.path.join(outdir, f'best_3acc_{i+1}.pth')))
-            # model.load_state_dict(torch.load(os.path.join(outdir, f'best_3acc_{i+1}.pth')))
-            logger.debug('load weight  :  {}'.format(os.path.join(outdir, f'best_loss_{i+1}.pth')))
-            model.load_state_dict(torch.load(os.path.join(outdir, f'best_loss_{i+1}.pth')))
-            logit_alcon_rnn(model, test_dataloader, param['device'], test_logit_dict, div=snapshot, init=init)
+        for i in range(n_snap):
+            logger.debug('load weight  :  {}'.format(os.path.join(outdir, f'best_3acc_{i+1}.pth')))
+            model.load_state_dict(torch.load(os.path.join(outdir, f'best_3acc_{i+1}.pth')))
+            logit_alcon_rnn(model, test_dataloader, param['device'], test_logit_dict, div=n_snap, init=init)
             init = False
 
         torch.save(test_logit_dict, os.path.join(outdir, 'prediction.pth'))
@@ -401,68 +393,53 @@ def main():
         del test_dataset, test_dataloader
         gc.collect()
 
+    # Ensemble
+    print('======== Ensemble phase =========')
+    emsemble_prediction = dict()
+    mb = master_bar(param['fold'])
 
+    print('======== Load Vector =========')
+    for i, fold in enumerate(mb):
+        outdir = os.path.join(param['save path'], EXP_NAME, now_date, 'fold{}'.format(fold))
+        prediction = torch.load(os.path.join(outdir, 'prediction.pth'))
+        # prediction is list
+        # prediction[0] = {'ID' : 0, 'logit' torch.tensor, ...}
+        if i == 0:
+            for ID, logit in progress_bar(prediction.items(), parent=mb):
+                emsemble_prediction[ID] = logit / len(param['fold'])
+        else:
+            for ID, logit in progress_bar(prediction.items(), parent=mb):
+                emsemble_prediction[ID] += logit / len(param['fold'])
 
-    # # Ensemble
-    # print('======== Ensemble phase =========')
-    # prediction_dict = dict()
-    # mb = master_bar(param['fold'])
     #
-    # print('======== Load Vector =========')
-    # for i, fold in enumerate(mb):
-    #     outdir = os.path.join(param['save path'], EXP_NAME, now_date,'fold{}'.format(fold))
-    #     prediction = torch.load(os.path.join(outdir, 'prediction.pth'))
-    #     # prediction is list
-    #     # prediction[0] = {'ID' : 0, 'logit' torch.tensor, ...}
-    #     if i == 0:
-    #         for preds in progress_bar(prediction, parent=mb):
-    #             prediction_dict[preds['ID']] = preds['logit'] / len(param['fold'])
-    #     else:
-    #         for preds in progress_bar(prediction, parent=mb):
-    #             prediction_dict[preds['ID']] += preds['logit'] / len(param['fold'])
+    outdir = os.path.join(param['save path'], EXP_NAME, now_date)
     #
-    # outdir = os.path.join(param['save path'], EXP_NAME, now_date)
+    file_handler = logging.FileHandler(os.path.join(outdir, 'result.log'))
+    file_handler.setLevel(logging.DEBUG)
+    file_handler.setFormatter(handler_format)
+    logger.addHandler(file_handler)
+    logger.info(' ==========  RESULT  ========== \n')
     #
-    # file_handler = logging.FileHandler(os.path.join(outdir, 'result.log'))
-    # file_handler.setLevel(logging.DEBUG)
-    # file_handler.setFormatter(handler_format)
-    # logger.addHandler(file_handler)
-    # logger.info(' ==========  RESULT  ========== \n')
+    cv = 0.0
+    train_data_size = 0
+    for fold in param['fold']:
+        acc = local_cv['fold{}'.format(fold)]['accuracy']
+        valid_size = local_cv['fold{}'.format(fold)]['valid_size']
+        train_data_size += valid_size
+        logger.info(' fold {} :  {:.3%} \n'.format(fold, acc))
+        cv += acc * valid_size
+    logger.info(' Local CV : {:.3%} \n'.format(cv / train_data_size))
+    logger.info(' ============================== \n')
     #
-    # cv = 0.0
-    # train_data_size = 0
-    # for fold in param['fold']:
-    #     acc = local_cv['fold{}'.format(fold)]['accuracy']
-    #     valid_size = local_cv['fold{}'.format(fold)]['valid_size']
-    #     train_data_size += valid_size
-    #     logger.info(' fold {} :  {:.3%} \n'.format(fold, acc))
-    #     cv += acc * valid_size
-    # logger.info(' Local CV : {:.3%} \n'.format(cv / train_data_size))
-    # logger.info(' ============================== \n')
-    #
-    # logger.removeHandler(file_handler)
+    logger.removeHandler(file_handler)
     #
     #
-    # torch.save(prediction_dict, os.path.join(outdir, 'prediction.pth'))
+    torch.save(emsemble_prediction, os.path.join(outdir, 'prediction.pth'))
     #
-    # print('======== make submittion file =========')
-    # vocab = get_vocab(param['vocabdir'])
-    # submit_list = list()
-    # for ID, logits in progress_bar(prediction_dict.items()):
-    #     submit_dict = dict()
-    #     submit_dict["ID"] = ID
-    #     preds = logits.softmax(dim=1).argmax(dim=1)
-    #     submit_dict["Unicode1"] = vocab['index2uni'][preds[0]]
-    #     submit_dict["Unicode2"] = vocab['index2uni'][preds[1]]
-    #     submit_dict["Unicode3"] = vocab['index2uni'][preds[2]]
-    #     submit_list.append(submit_dict)
-    # print()
-    #
-    # pd.DataFrame(submit_list).sort_values('ID').set_index('ID').to_csv(os.path.join(outdir, 'test_prediction.csv'))
-    #
-    # import zipfile
-    # with zipfile.ZipFile(os.path.join(outdir,'submit_{}_{}.zip'.format(EXP_NAME, now_date)), 'w') as zf:
-    #     zf.write(os.path.join(outdir, 'test_prediction.csv'))
+    print('======== make submittion file =========')
+
+    submit_list = make_submission(emsemble_prediction)
+    pd.DataFrame(submit_list).sort_values('ID').set_index('ID').to_csv(os.path.join(outdir, 'test_prediction.csv'))
 
     print('success!')
 
