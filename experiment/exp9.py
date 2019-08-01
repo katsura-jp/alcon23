@@ -46,6 +46,14 @@ def main():
     print('{}-{}-{} {}:{}:{}'.format(now.year, now.month, now.day, now.hour, now.minute, now.second))
     with open('../params/exp{}.yaml'.format(EXP_NO), "r+") as f:
         param = yaml.load(f, Loader=yaml.FullLoader)
+
+    resume_fold = -1
+    if param['resume'] is not None:
+        print('--- resume ---')
+        info = torch.load(os.path.join(param['resume'], 'info.pth'))
+        now_date = info['now_date']
+        resume_fold = info['fold']
+
     param['date'] = now_date
     # seed set
     seed_setting(param['seed'])
@@ -130,11 +138,6 @@ def main():
         loss_fn = nn.CrossEntropyLoss().to(param['device'])
         eval_fn = accuracy_one_character
 
-        max_char_acc = -1.
-        max_3char_acc = -1.
-        min_loss = 10**5
-
-
         writer = tbx.SummaryWriter("../log/exp{}/{}/fold{}".format(EXP_NO, now_date, fold))
 
         for key, val in param.items():
@@ -163,8 +166,36 @@ def main():
         mb = master_bar(range((n_snap+snap_start) * cycle_iter))
         scheduler = CosineAnnealingWarmUpRestarts(optimizer, T_0=len(train_dataloader) * cycle_iter, T_mult=1, T_up=500,
                                                   eta_max=0.1)
+        resume = False
+        if resume_fold == fold:
+            logger.debug('########################')
+            logger.debug('##      RESUME        ##')
+            logger.debug('########################')
+            resume = True
+            resume_epoch = info['epoch']
+            snapshot = info['snapshot']
+            min_loss = info['min_loss']
+            max_char_acc = info['max_char_acc']
+            max_3char_acc = info['max_char_acc']
+            snapshot_loss = info['snapshot_loss']
+            snapshot_eval = info['snapshot_eval']
+            snapshot_eval3 = info['snapshot_eval3']
+            logger.debug(f'epoch : {resume_epoch}')
+            logger.debug(f'snapshot : {snapshot}')
+            logger.debug('########################')
+
+
+            model.load_state_dict(torch.load(os.path.join(outdir, 'latest.pth')))
+
 
         for epoch in mb:
+            if resume and epoch <= resume_epoch:
+                if epoch == resume_epoch:
+                    print('set scheduler state')
+                    scheduler.step(epoch * len(train_dataloader))
+                    print(f'lr : {scheduler.get_lr()}')
+                continue
+
             if epoch % cycle_iter == 0 and epoch >= snap_start * cycle_iter:
                 if snapshot > 1:
                     snapshot_loss_list.append(snapshot_loss)
@@ -312,6 +343,21 @@ def main():
                     snapshot_eval3 = avg_three_valid_acc
                     torch.save(model.state_dict(), os.path.join(outdir, f'best_3acc_{snapshot}.pth'))
 
+            torch.save(model.state_dict(), os.path.join(outdir, 'latest.pth'))
+            torch.save({
+                'now_date': now_date,
+                'epoch' : epoch,
+                'fold' : fold,
+                'snapshot': snapshot,
+                'min_loss': min_loss,
+                'max_char_acc': max_char_acc,
+                'max_3char_acc': max_3char_acc,
+                'snapshot_loss': snapshot_loss,
+                'snapshot_eval': snapshot_eval,
+                'snapshot_eval3' : snapshot_eval3,
+            }, os.path.join(outdir, 'info.pth'))
+
+
 
         snapshot_loss_list.append(snapshot_loss)
         snapshot_eval_list.append(snapshot_eval)
@@ -392,54 +438,6 @@ def main():
 
         del test_dataset, test_dataloader
         gc.collect()
-
-    # Ensemble
-    print('======== Ensemble phase =========')
-    emsemble_prediction = dict()
-    mb = master_bar(param['fold'])
-
-    print('======== Load Vector =========')
-    for i, fold in enumerate(mb):
-        outdir = os.path.join(param['save path'], EXP_NAME, now_date, 'fold{}'.format(fold))
-        prediction = torch.load(os.path.join(outdir, 'prediction.pth'))
-        # prediction is list
-        # prediction[0] = {'ID' : 0, 'logit' torch.tensor, ...}
-        if i == 0:
-            for ID, logit in progress_bar(prediction.items(), parent=mb):
-                emsemble_prediction[ID] = logit / len(param['fold'])
-        else:
-            for ID, logit in progress_bar(prediction.items(), parent=mb):
-                emsemble_prediction[ID] += logit / len(param['fold'])
-
-    #
-    outdir = os.path.join(param['save path'], EXP_NAME, now_date)
-    #
-    file_handler = logging.FileHandler(os.path.join(outdir, 'result.log'))
-    file_handler.setLevel(logging.DEBUG)
-    file_handler.setFormatter(handler_format)
-    logger.addHandler(file_handler)
-    logger.info(' ==========  RESULT  ========== \n')
-    #
-    cv = 0.0
-    train_data_size = 0
-    for fold in param['fold']:
-        acc = local_cv['fold{}'.format(fold)]['accuracy']
-        valid_size = local_cv['fold{}'.format(fold)]['valid_size']
-        train_data_size += valid_size
-        logger.info(' fold {} :  {:.3%} \n'.format(fold, acc))
-        cv += acc * valid_size
-    logger.info(' Local CV : {:.3%} \n'.format(cv / train_data_size))
-    logger.info(' ============================== \n')
-    #
-    logger.removeHandler(file_handler)
-    #
-    #
-    torch.save(emsemble_prediction, os.path.join(outdir, 'prediction.pth'))
-    #
-    print('======== make submittion file =========')
-
-    submit_list = make_submission(emsemble_prediction)
-    pd.DataFrame(submit_list).sort_values('ID').set_index('ID').to_csv(os.path.join(outdir, 'test_prediction.csv'))
 
     print('success!')
 

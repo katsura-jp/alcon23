@@ -393,54 +393,6 @@ def main():
         del test_dataset, test_dataloader
         gc.collect()
 
-    # Ensemble
-    print('======== Ensemble phase =========')
-    emsemble_prediction = dict()
-    mb = master_bar(param['fold'])
-
-    print('======== Load Vector =========')
-    for i, fold in enumerate(mb):
-        outdir = os.path.join(param['save path'], EXP_NAME, now_date, 'fold{}'.format(fold))
-        prediction = torch.load(os.path.join(outdir, 'prediction.pth'))
-        # prediction is list
-        # prediction[0] = {'ID' : 0, 'logit' torch.tensor, ...}
-        if i == 0:
-            for ID, logit in progress_bar(prediction.items(), parent=mb):
-                emsemble_prediction[ID] = logit / len(param['fold'])
-        else:
-            for ID, logit in progress_bar(prediction.items(), parent=mb):
-                emsemble_prediction[ID] += logit / len(param['fold'])
-
-    #
-    outdir = os.path.join(param['save path'], EXP_NAME, now_date)
-    #
-    file_handler = logging.FileHandler(os.path.join(outdir, 'result.log'))
-    file_handler.setLevel(logging.DEBUG)
-    file_handler.setFormatter(handler_format)
-    logger.addHandler(file_handler)
-    logger.info(' ==========  RESULT  ========== \n')
-    #
-    cv = 0.0
-    train_data_size = 0
-    for fold in param['fold']:
-        acc = local_cv['fold{}'.format(fold)]['accuracy']
-        valid_size = local_cv['fold{}'.format(fold)]['valid_size']
-        train_data_size += valid_size
-        logger.info(' fold {} :  {:.3%} \n'.format(fold, acc))
-        cv += acc * valid_size
-    logger.info(' Local CV : {:.3%} \n'.format(cv / train_data_size))
-    logger.info(' ============================== \n')
-    #
-    logger.removeHandler(file_handler)
-    #
-    #
-    torch.save(emsemble_prediction, os.path.join(outdir, 'prediction.pth'))
-    #
-    print('======== make submittion file =========')
-
-    submit_list = make_submission(emsemble_prediction)
-    pd.DataFrame(submit_list).sort_values('ID').set_index('ID').to_csv(os.path.join(outdir, 'test_prediction.csv'))
-
     print('success!')
 
 
