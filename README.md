@@ -116,13 +116,13 @@ Archive:  yoursubmission.zip
 
 #### Result
 
-| fold | Local CV | file                                                |
-| :--: | :------: | :-------------------------------------------------- |
-|  0   |          | /mnt/hdd1/alcon2019/exp8/2019-07-31_01-30-12/fold0/ |
-|  1   |          |                                                     |
-|  2   |          |                                                     |
-|  3   |          |                                                     |
-|  4   |          |                                                     |
+| fold | Local CV(single best) | file                                                |
+| :--: | :-------------------: | :-------------------------------------------------- |
+|  0   | 97.868174%(98.73813%) | /mnt/hdd1/alcon2019/exp8/2019-07-31_01-30-12/fold0/ |
+|  1   |                       | /mnt/hdd1/alcon2019/exp8/2019-08-01_04-55-40/fold1/ |
+|  2   |                       | /mnt/hdd1/alcon2019/exp8/2019-08-01_04-55-40/fold2/ |
+|  3   |                       | /mnt/hdd1/alcon2019/exp8/2019-08-01_04-55-40/fold3/ |
+|  4   |                       | /mnt/hdd1/alcon2019/exp8/2019-08-01_04-55-40/fold4/ |
 
 - Public score: 
 
@@ -135,7 +135,7 @@ Archive:  yoursubmission.zip
 #### Detail
 
 - Model : Inception-v4(pre-train ImageNet) + BiGRU x 2
-- Batch Size : 
+- Batch Size : 180 (530~540 iter / epoch)
 - Resolution : 6 (192 x 128  <--- 210 x 150)
 - Mixed-Precision Training (optim level '01')
 - SGDR(5epoch / cycle)
@@ -144,13 +144,13 @@ Archive:  yoursubmission.zip
 
 #### Result
 
-| fold | Local CV | file |
-| :--: | :------: | :--- |
-|  0   |          |      |
-|  1   |          |      |
-|  2   |          |      |
-|  3   |          |      |
-|  4   |          |      |
+| fold | Local CV(single best) | file                                                |
+| :--: | :-------------------: | :-------------------------------------------------- |
+|  0   |  97.072905%(98.701%)  | /mnt/hdd1/alcon2019/exp9/2019-08-01_01-41-16/fold0/ |
+|  1   |  98.188031%(98.789%)  | /mnt/hdd1/alcon2019/exp9/2019-08-01_11-03-24/fold1/ |
+|  2   |  98.083335%(98.830%)  | /mnt/hdd1/alcon2019/exp9/2019-08-01_23-42-41/fold2/ |
+|  3   |                       |                                                     |
+|  4   |                       |                                                     |
 
 - Public score: 
 
@@ -195,6 +195,7 @@ Archive:  yoursubmission.zip
 - 残り1サブのみなので注意
 - SSE有効（5epoch/cycleだと足りないかも.でも5epochでもいいかも（？）)
 - SENet効かない
+- 独自モデルも欲しいよね（）
 
 ### 最終的なパイプライン
 1. Resolution 6で学習
