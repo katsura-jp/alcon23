@@ -14,6 +14,12 @@ class SEResNeXtGRU2(nn.Module):
             self.se_resnet.load_state_dict(torch.load(load_weight))
 
         self.layer0 = self.se_resnet.layer0
+        # self.layer0 = nn.Sequential(
+        #             nn.Conv2d(3, 64, kernel_size=7, stride=2,padding=3, bias=False),
+        #             nn.BatchNorm2d(64),
+        #             nn.ReLU(inplace=True),
+        #             nn.MaxPool2d(3, stride=2,ceil_mode=True)
+        #         )
         self.layer1 = self.se_resnet.layer1
         self.layer2 = self.se_resnet.layer2
         self.layer3 = self.se_resnet.layer3

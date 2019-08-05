@@ -35,8 +35,10 @@ from train_methods import *
 # 5. 
 #
 ##############################
-EXP_NO = 8
-EXP_NAME = 'exp8'
+
+# Change point
+EXP_NO = 9
+EXP_NAME = 'exp9'
 
 def main():
     now = datetime.datetime.now()
@@ -61,8 +63,9 @@ def main():
     local_cv = dict()
 
     for fold in [0]:
+        # change point
         # /mnt/hdd1/alcon2019/ + exp0/ + 2019-mm-dd_hh-mm-ss/ + foldN
-        outdir = '/mnt/hdd1/alcon2019/exp8/2019-07-31_01-30-12/fold0/'
+        outdir = '/mnt/hdd1/alcon2019/exp9/2019-08-01_01-41-16/fold0/'
 
         file_handler = logging.FileHandler(os.path.join(outdir, 'experiment.log'))
         file_handler.setLevel(logging.DEBUG)
@@ -101,8 +104,9 @@ def main():
         valid_dataloader = DataLoader(valid_dataset, batch_size=param['batch size'], num_workers=param['thread'],
                                       pin_memory=False, drop_last=False, shuffle=False)
 
+        # change point
         # model
-        model = DenseNet201GRU2(num_classes=48, hidden_size=512, bidirectional=True, load_weight=None, dropout=param['dropout'])
+        model = InceptionV4GRU2(num_classes=48, hidden_size=512, bidirectional=True, load_weight=None, dropout=param['dropout'])
 
 
 
