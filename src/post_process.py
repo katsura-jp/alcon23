@@ -39,8 +39,8 @@ def get_root_dir(n=7):
 
 def get_model(n=7):
     import sys
-    sys.append('../')
-    from model import *
+    sys.path.append('../')
+    from models import *
 
     if n == 7:
         model = OctResNetGRU2(num_classes=48, hidden_size=512, bidirectional=True, load_weight=None)
@@ -102,5 +102,5 @@ def make_submission(prediction : dict) -> list:
 
     return submission_list
 
-def submission_to_df(submission_list : list) -> pd.DataFrame:
+def submission_to_df(submit_list : list) -> pd.DataFrame:
     return pd.DataFrame(submit_list).sort_values('ID').set_index('ID')
