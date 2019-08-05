@@ -156,19 +156,20 @@ Archive:  yoursubmission.zip
 
 
 
-### EXP-10
+### EXP-11
 
 ------
 
 #### Detail
 
 - Model : SEResNeXt-101(pre-train ImageNet) + BiGRU x 2
-- Batch Size : 
+- Batch Size : 64 (1500 iter / epoch)
 - Resolution : 6 (192 x 128  <--- 210 x 150)
 - Mixed-Precision Training (optim level '01')
 - SGDR(5epoch / cycle)
 - 3~10cycle (8cycle) で SnapShot Ensemble
 - Total epoch: 50
+- 遅い
 
 #### Result
 
@@ -192,7 +193,6 @@ Archive:  yoursubmission.zip
 - SSE: 10epoch(SGDR) + 5epoch * 4shot = 30epoch
 - HorizonFlipでも行けるかもしれない(反転しても同じものは存在しないため)
 - Attention Branch Networkを試して見たい（Wide ResNet, SENet, ResNeXtあたり) => 精度悪化
-- 残り1サブのみなので注意
 - SSE有効（5epoch/cycleだと足りないかも.でも5epochでもいいかも（？）)
 - SENet効かない
 - 独自モデルも欲しいよね（）

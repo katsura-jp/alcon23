@@ -70,7 +70,7 @@ def main():
         torch.backends.cudnn.benchmark = True
 
     local_cv = dict()
-    rootdirs = post_process.get_root_dirs(EXP_NO) 
+    rootdirs = post_process.get_root_dir(EXP_NO)
     model = post_process.get_model(EXP_NO)
     # optim
     optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9,
@@ -84,31 +84,32 @@ def main():
         model = nn.DataParallel(model)
     snap_range = param['snap_range']
 
-    for fold in range(5):
-        rootdir = rootdirs[fold]
-        # Dataset
-        param['batch size'] = max(param['batch size'], param['batch size'] * param['GPU'])
 
+    param['batch size'] = max(param['batch size'], param['batch size'] * param['GPU'])
+    test_dataset = AlconDataset(df=get_test_df(param['tabledir']),
+                                augmentation=get_test_augmentation(*get_resolution(param['resolution'])),
+                                datadir=os.path.join(param['dataroot'], 'test', 'imgs'), mode='test')
+    logger.debug('test dataset size: {}'.format(len(test_dataset)))
+
+    test_dataloader = DataLoader(test_dataset, batch_size=param['batch size'], num_workers=param['thread'],
+                                 pin_memory=False, drop_last=False, shuffle=False)
+    logger.debug('test loader size: {}'.format(len(test_dataloader)))
+
+
+
+    for fold in range(5):
+        logger.debug(f'=========  FOLD : {fold}  =========')
+        rootdir = rootdirs[fold]
+
+        # Set Loader
         valid_dataset = AlconDataset(df=get_train_df(param['tabledir']).query('valid == @fold'),
                                      augmentation=get_test_augmentation(*get_resolution(param['resolution'])),
                                      datadir=os.path.join(param['dataroot'], 'train', 'imgs'), mode='valid',
                                      margin_augmentation=False)
-
-        logger.debug('valid dataset size: {}'.format(len(valid_dataset)))
-
-        # Dataloader
-
         valid_dataloader = DataLoader(valid_dataset, batch_size=param['batch size'], num_workers=param['thread'],
                                       pin_memory=False, drop_last=False, shuffle=False)
-
+        logger.debug('valid dataset size: {}'.format(len(valid_dataset)))
         logger.debug('valid loader size: {}'.format(len(valid_dataloader)))
-
-        # set weight
-        loss_fn = nn.CrossEntropyLoss().to(param['device'])
-        eval_fn = accuracy_one_character
-
-
-        # Local cv
 
         target_list = list()
         for _, targets, _ in valid_dataloader:
@@ -117,51 +118,56 @@ def main():
         target_list = torch.cat(target_list)
 
         mb = master_bar(range(snap_range[0], snap_range[1]))
+        n_div = len(range(snap_range[0], snap_range[1]))
+
         valid_logit_dict = dict()
+        test_logit_dict = dict()
+
         init = True
         
         for i in mb:
             print('load weight: {}'.format(os.path.join(rootdir, f'best_loss_{i+1}.pth')))
             model.load_state_dict(torch.load(os.path.join(rootdir, f'best_loss_{i+1}.pth')))
-            logit_alcon_rnn(model, valid_dataloader, param['device'], valid_logit_dict, div=n_snap, init=init)
+            logit_alcon_rnn(model, valid_dataloader, param['device'], valid_logit_dict, div=n_div, init=init)
+            logit_alcon_rnn(model, test_dataloader, param['device'], test_logit_dict, div=n_div, init=init)
             init = False
 
+
+        # calcurate local score
         pred_list = torch.stack(list(valid_logit_dict.values()))
         pred_list = pred_list.softmax(dim=2)
         local_accuracy = accuracy_three_character(pred_list, target_list)
         logger.debug('LOCAL CV : {:5%}'.format(local_accuracy))
-        torch.save(valid_logit_dict, os.path.join(outdir, f'fold{fold}_valid_logit.pth'))
 
+        torch.save(valid_logit_dict, os.path.join(outdir, f'fold{fold}_valid_logit.pth'))
+        torch.save(test_logit_dict, os.path.join(outdir, f'fold{fold}_prediction.pth'))
         local_cv['fold{}'.format(fold)] = {'accuracy': local_accuracy, 'valid_size': len(valid_dataset)}
 
+    valid_logits = dict()
+    test_logits = dict()
 
-        logger.debug('=========== Prediction phrase ===========')
+    for fold in range(5):
+        path = os.path.join(outdir, f'fold{fold}_valid_logit.pth')
+        logits = torch.load(path)
+        for k, v in logits.items():
+            valid_logits[k] = v
+    valid_logits = sorted(valid_logits.items())
+    valid_logits = dict((k, v) for k, v in valid_logits)
+    torch.save(valid_logits, os.path.join(outdir, f'valid_logits.pth'))
 
-        test_dataset = AlconDataset(df=get_test_df(param['tabledir']),
-                                    augmentation=get_test_augmentation(*get_resolution(param['resolution'])),
-                                    datadir=os.path.join(param['dataroot'], 'test', 'imgs'), mode='test')
 
-        test_dataloader = DataLoader(test_dataset, batch_size=param['batch size'], num_workers=param['thread'],
-                                     pin_memory=False, drop_last=False, shuffle=False)
-        logger.debug('test dataset size: {}'.format(len(test_dataset)))
-        logger.debug('test loader size: {}'.format(len(test_dataloader)))
+    for fold in range(5):
+        path = os.path.join(outdir, f'fold{fold}_prediction.pth')
+        logits = torch.load(path)
+        if fold == 0:
+            for k, v in logits.items():
+                test_logits[k] = v / 5
+        else:
+            for k, v in logits.items():
+                test_logits[k] += v / 5
 
-        test_logit_dict = dict()
-        init = True
-        for i in range(n_snap):
-            logger.debug('load weight  :  {}'.format(os.path.join(outdir, f'best_loss_{i+1}.pth')))
-            model.load_state_dict(torch.load(os.path.join(outdir, f'best_loss_{i+1}.pth')))
-            logit_alcon_rnn(model, test_dataloader, param['device'], test_logit_dict, div=n_snap, init=init)
-            init = False
-
-        torch.save(test_logit_dict, os.path.join(outdir, 'prediction.pth'))
-        output_list = make_submission(test_logit_dict)
-        pd.DataFrame(output_list).sort_values('ID').set_index('ID').to_csv(os.path.join(outdir, 'test_prediction.csv'))
-        logger.debug('success!')
-        logger.removeHandler(file_handler)
-
-        del test_dataset, test_dataloader
-        gc.collect()
+    torch.save(test_logits, os.path.join(outdir, 'test_logits.pth'))
+    post_process.submission_to_df(post_process.make_submission(test_logits)).to_csv(os.path.join(outdir, 'test_prediction.csv'))
 
     print('success!')
 
