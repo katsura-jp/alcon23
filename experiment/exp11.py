@@ -176,7 +176,7 @@ def main():
             snapshot = info['snapshot']
             min_loss = info['min_loss']
             max_char_acc = info['max_char_acc']
-            max_3char_acc = info['max_char_acc']
+            max_3char_acc = info['max_char_3acc']
             snapshot_loss = info['snapshot_loss']
             snapshot_eval = info['snapshot_eval']
             snapshot_eval3 = info['snapshot_eval3']
@@ -192,7 +192,7 @@ def main():
             if resume and epoch <= resume_epoch:
                 if epoch == resume_epoch:
                     print('set scheduler state')
-                    scheduler.step(epoch * len(train_dataloader))
+                    scheduler.step((epoch+1) * len(train_dataloader))
                     print(f'lr : {scheduler.get_lr()}')
                 continue
 

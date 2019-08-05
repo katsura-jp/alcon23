@@ -18,10 +18,42 @@ def get_root_dir(n=7):
                     '/mnt/hdd1/alcon2019/exp8/2019-08-01_04-55-40/fold2/',
                     '/mnt/hdd1/alcon2019/exp8/2019-08-01_04-55-40/fold3/',
                     '/mnt/hdd1/alcon2019/exp8/2019-08-01_04-55-40/fold4/']
+    elif n == 9:
+        rootdirs = ['/mnt/hdd1/alcon2019/exp9/2019-08-01_01-41-16/fold0/',
+                    '/mnt/hdd1/alcon2019/exp9/2019-08-01_11-03-24/fold1/',
+                    '/mnt/hdd1/alcon2019/exp9/2019-08-01_23-42-41/fold2/',
+                    '/mnt/hdd1/alcon2019/exp9/2019-08-01_23-42-41/fold3/',
+                    '/mnt/hdd1/alcon2019/exp9/2019-08-01_23-42-41/fold4/']
+    elif n == 11:
+        rootdirs = ['/mnt/hdd1/alcon2019/exp11/2019-08-03_01-34-03/fold0/',
+                    '/mnt/hdd1/alcon2019/exp11/2019-08-03_01-34-03/fold1/',
+                    '/mnt/hdd1/alcon2019/exp11/2019-08-03_01-34-03/fold2/',
+                    '/mnt/hdd1/alcon2019/exp11/2019-08-03_01-34-03/fold3/',
+                    '/mnt/hdd1/alcon2019/exp11/2019-08-03_01-34-03/fold4/']
+
     else:
         raise "Not such file"
     
     return rootdirs
+
+
+def get_model(n=7):
+    import sys
+    sys.append('../')
+    from model import *
+
+    if n == 7:
+        model = OctResNetGRU2(num_classes=48, hidden_size=512, bidirectional=True, load_weight=None)
+    elif n == 8:
+        model = DenseNet201GRU2(num_classes=48, hidden_size=512, bidirectional=True, load_weight=None)
+    elif n == 9:
+        model = InceptionV4GRU2(num_classes=48, hidden_size=512, bidirectional=True, load_weight=None)
+    elif n == 11:
+        model = SEResNeXtGRU2(num_classes=48, hidden_size=512, bidirectional=True, load_weight=None)
+    else:
+        raise "Not such file"
+    return model
+    
 
 def get_test_prediction(n=7):
     rootdirs = get_root_dir(n)
