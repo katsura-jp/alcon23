@@ -22,7 +22,7 @@ from src.utils import *
 from src.collates import *
 from src.scheduler import *
 from src.losses import *
-from src import post_process
+from src.post_process import *
 from train_methods import *
 
 EXP_NO = None
@@ -61,7 +61,7 @@ def main():
     file_handler.setFormatter(handler_format)
     logger.addHandler(file_handler)
 
-    logger.debug('=============   Prediction  ============='.)
+    logger.debug('=============   Prediction  =============')
     logger.debug('{}-{}-{} {}:{}:{}'.format(now.year, now.month, now.day, now.hour, now.minute, now.second))
 
 
@@ -70,18 +70,9 @@ def main():
         torch.backends.cudnn.benchmark = True
 
     local_cv = dict()
-    rootdirs = post_process.get_root_dir(EXP_NO)
-    model = post_process.get_model(EXP_NO)
-    # optim
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9,
-                                    weight_decay=1e-5, nesterov=False)
-    # scheduler
-
-
-    model = model.to(param['device'])
-    model, optimizer = amp.initialize(model, optimizer, opt_level="O1")
-    if param['GPU'] > 0:
-        model = nn.DataParallel(model)
+    rootdirs = get_root_dir(EXP_NO)
+    
+    # mode = param['mode']
     snap_range = param['snap_range']
 
 
@@ -95,12 +86,25 @@ def main():
                                  pin_memory=False, drop_last=False, shuffle=False)
     logger.debug('test loader size: {}'.format(len(test_dataloader)))
 
-
+    sse = param['sse']
+    mode = param['mode']
+    if not mode in set(['loss','acc','3acc']):
+        raise "you choice mode in loss, acc, 3acc"
 
     for fold in range(5):
         logger.debug(f'=========  FOLD : {fold}  =========')
         rootdir = rootdirs[fold]
-
+        
+        #################
+        model = get_model(EXP_NO)
+        optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9,
+                                        weight_decay=1e-5, nesterov=False)
+        
+        model = model.to(param['device'])
+        model, optimizer = amp.initialize(model, optimizer, opt_level="O1")
+        if param['GPU'] > 0:
+            model = nn.DataParallel(model)
+        ##################
         # Set Loader
         valid_dataset = AlconDataset(df=get_train_df(param['tabledir']).query('valid == @fold'),
                                      augmentation=get_test_augmentation(*get_resolution(param['resolution'])),
@@ -117,21 +121,30 @@ def main():
             target_list.append(targets)
         target_list = torch.cat(target_list)
 
-        mb = master_bar(range(snap_range[0], snap_range[1]))
-        n_div = len(range(snap_range[0], snap_range[1]))
 
         valid_logit_dict = dict()
         test_logit_dict = dict()
 
         init = True
-        
-        for i in mb:
-            print('load weight: {}'.format(os.path.join(rootdir, f'best_loss_{i+1}.pth')))
-            model.load_state_dict(torch.load(os.path.join(rootdir, f'best_loss_{i+1}.pth')))
-            logit_alcon_rnn(model, valid_dataloader, param['device'], valid_logit_dict, div=n_div, init=init)
-            logit_alcon_rnn(model, test_dataloader, param['device'], test_logit_dict, div=n_div, init=init)
+        if sse:
+            mb = master_bar(range(snap_range[0], snap_range[1]))
+            n_div = len(range(snap_range[0], snap_range[1]))
+            for i in mb:
+                print('load weight: {}'.format(os.path.join(rootdir, f'best_{mode}_{i+1}.pth')))
+                # model.load_state_dict(torch.load(os.path.join(rootdir, f'best_loss_{i+1}.pth')))
+                model.load_state_dict(torch.load(os.path.join(rootdir, f'best_{mode}_{i+1}.pth')))
+                # model.load_state_dict(torch.load(os.path.join(rootdir, f'best_3acc_{i+1}.pth')))
+                logit_alcon_rnn(model, valid_dataloader, param['device'], valid_logit_dict, div=n_div, init=init)
+                logit_alcon_rnn(model, test_dataloader, param['device'], test_logit_dict, div=n_div, init=init)
+                init = False
+        else:
+            print('load weight: {}'.format(os.path.join(rootdir, f'best_{mode}.pth')))
+            # model.load_state_dict(torch.load(os.path.join(rootdir, f'best_loss_{i+1}.pth')))
+            model.load_state_dict(torch.load(os.path.join(rootdir, f'best_{mode}.pth')))
+            # model.load_state_dict(torch.load(os.path.join(rootdir, f'best_3acc_{i+1}.pth')))
+            logit_alcon_rnn(model, valid_dataloader, param['device'], valid_logit_dict, div=1, init=init)
+            logit_alcon_rnn(model, test_dataloader, param['device'], test_logit_dict, div=1, init=init)
             init = False
-
 
         # calcurate local score
         pred_list = torch.stack(list(valid_logit_dict.values()))
@@ -142,7 +155,12 @@ def main():
         torch.save(valid_logit_dict, os.path.join(outdir, f'fold{fold}_valid_logit.pth'))
         torch.save(test_logit_dict, os.path.join(outdir, f'fold{fold}_prediction.pth'))
         local_cv['fold{}'.format(fold)] = {'accuracy': local_accuracy, 'valid_size': len(valid_dataset)}
-
+        
+        
+        del valid_dataset, valid_dataloader, valid_logit_dict, test_logit_dict, pred_list
+        del model, optimizer
+        gc.collect()
+    
     valid_logits = dict()
     test_logits = dict()
 
@@ -167,7 +185,7 @@ def main():
                 test_logits[k] += v / 5
 
     torch.save(test_logits, os.path.join(outdir, 'test_logits.pth'))
-    post_process.submission_to_df(post_process.make_submission(test_logits)).to_csv(os.path.join(outdir, 'test_prediction.csv'))
+    submission_to_df(make_submission(test_logits)).to_csv(os.path.join(outdir, 'test_prediction.csv'))
 
     print('success!')
 

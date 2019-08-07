@@ -1,13 +1,14 @@
-batch size: 40
+batch size: 180
 device: cuda:0
 dataroot: /mnt/hdd1/alcon2019/input/dataset/
 vocabdir: /mnt/hdd1/alcon2019/input/vocab/
 tabledir: /mnt/hdd1/alcon2019/input/tables/
 save path: /mnt/hdd1/alcon2019/
 GPU: 1
-thread: 16
+thread: 24
 debug: False
 dropout: 0.5
 seed: 2019
-fold: [0]
+fold: [2,3,4]
 resolution: 6
+resume:
