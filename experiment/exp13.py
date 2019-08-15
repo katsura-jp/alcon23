@@ -135,8 +135,7 @@ def main():
         if param['GPU'] > 0:
             model = nn.DataParallel(model)
 
-        # loss_fn = nn.CrossEntropyLoss().to(param['device'])
-        loss_fn = CrossEntropyLossWithoutSoftmax().to(param['device'])
+        loss_fn = nn.CrossEntropyLoss().to(param['device'])
         eval_fn = accuracy_one_character
 
         writer = tbx.SummaryWriter("../log/exp{}/{}/fold{}".format(EXP_NO, now_date, fold))
@@ -216,7 +215,7 @@ def main():
                 targets = targets.to(param['device'])
                 optimizer.zero_grad()
                 logits = model(inputs)  # logits.size() = (batch*3, 48)
-                preds = logits.view(targets.size(0), 3, -1)
+                preds = logits.view(targets.size(0), 3, -1).softmax(dim=2)
                 loss = loss_fn(logits, targets.view(-1, targets.size(2)).argmax(dim=1))
                 with amp.scale_loss(loss, optimizer) as scaled_loss:
                     scaled_loss.backward()
@@ -238,7 +237,7 @@ def main():
                 if step % val_iter == 0 and step != 0:
                     avg_valid_loss, avg_valid_accuracy, avg_three_valid_acc = valid_alcon_rnn(model, valid_dataloader,
                                                                                               param['device'],
-                                                                                              loss_fn, eval_fn, softmax=False)
+                                                                                              loss_fn, eval_fn)
                     writer.add_scalars("data/metric/valid", {
                         'loss': avg_valid_loss,
                         'accuracy': avg_valid_accuracy,
@@ -295,7 +294,7 @@ def main():
 
 
             avg_valid_loss, avg_valid_accuracy, avg_three_valid_acc = valid_alcon_rnn(model, valid_dataloader, param['device'],
-                                                                                  loss_fn, eval_fn, softmax=False)
+                                                                                  loss_fn, eval_fn)
 
             writer.add_scalars("data/metric/valid", {
                 'loss': avg_valid_loss,
@@ -394,7 +393,7 @@ def main():
             init = False
 
         pred_list = torch.stack(list(valid_logit_dict.values()))
-        pred_list = pred_list
+        pred_list = pred_list.softmax(dim=2)
         local_accuracy = accuracy_three_character(pred_list, target_list)
         logger.debug('LOCAL CV : {:5%}'.format(local_accuracy))
         torch.save(valid_logit_dict, os.path.join(outdir, f'fold{fold}_valid_logit.pth'))
