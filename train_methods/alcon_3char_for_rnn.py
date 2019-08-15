@@ -9,7 +9,7 @@ from src.metrics import *
 from src.utils import *
 
 
-def train_alcon_rnn(model, optimizer, dataloader, device, loss_fn, eval_fn, epoch, scheduler=None, writer=None, parent=None):
+def train_alcon_rnn(model, optimizer, dataloader, device, loss_fn, eval_fn, epoch, scheduler=None, writer=None, parent=None, softmax=True):
     model.train()
     avg_loss = 0
     avg_accuracy = 0
@@ -20,7 +20,7 @@ def train_alcon_rnn(model, optimizer, dataloader, device, loss_fn, eval_fn, epoc
 
         optimizer.zero_grad()
         logits = model(inputs) # logits.size() = (batch*3, 48)
-        preds = logits.view(targets.size(0), 3, -1).softmax(dim=2)
+        preds = logits.view(targets.size(0), 3, -1).softmax(dim=2) if softmax else logits.view(targets.size(0), 3, -1)
         loss = loss_fn(logits, targets.view(-1, targets.size(2)).argmax(dim=1))
         loss.backward()
         # torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
@@ -49,7 +49,7 @@ def train_alcon_rnn(model, optimizer, dataloader, device, loss_fn, eval_fn, epoc
     return avg_loss, avg_accuracy, three_char_accuracy
 
 
-def valid_alcon_rnn(model, dataloader, device, loss_fn, eval_fn):
+def valid_alcon_rnn(model, dataloader, device, loss_fn, eval_fn, softmax=True):
     model.eval()
     with torch.no_grad():
         avg_loss = 0
@@ -60,7 +60,7 @@ def valid_alcon_rnn(model, dataloader, device, loss_fn, eval_fn):
             targets = targets.to(device)
 
             logits = model(inputs)  # logits.size() = (batch*3, 48)
-            preds = logits.view(targets.size(0), 3, -1).softmax(dim=2)
+            preds = logits.view(targets.size(0), 3, -1).softmax(dim=2) if softmax else logits.view(targets.size(0), 3, -1)
             loss = loss_fn(logits, targets.view(-1, targets.size(2)).argmax(dim=1))
             avg_loss += loss.item()
             _avg_accuracy = eval_fn(preds, targets.argmax(dim=2)).item()
@@ -74,7 +74,7 @@ def valid_alcon_rnn(model, dataloader, device, loss_fn, eval_fn):
     return avg_loss, avg_accuracy, three_char_accuracy
 
 
-def pred_alcon_rnn(model, dataloader, device):
+def pred_alcon_rnn(model, dataloader, device, softmax=True):
     output_list = list()
     vocab = get_vocab()
 
@@ -84,7 +84,7 @@ def pred_alcon_rnn(model, dataloader, device):
             inputs = inputs.to(device)
             logits = model(inputs) # logits.size() = (batch*3, 48)
             logits = logits.view(inputs.size(0), 3, -1) # logits.size() = (batch, 3, 48)
-            preds = logits.softmax(dim=2).to('cpu')
+            preds = logits.softmax(dim=2).to('cpu') if softmax else logits.to('cpu')
 
             for i in range(inputs.size(0)):
                 index = indices[i]
