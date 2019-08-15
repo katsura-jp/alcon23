@@ -10,7 +10,7 @@ except:
     from temperature_softmax import TemperatureSoftmax
 
 class OctResNet50GRU2(nn.Module):
-    def __init__(self, num_classes, hidden_size=512, bidirectional=False, dropout=0.5, load_weight=None):
+    def __init__(self, num_classes, hidden_size=512, bidirectional=False, dropout=0.5, load_weight=None, softmax=None):
         super(OctResNet50GRU2, self).__init__()
         self.num_classes = num_classes
         self.hidden_size = hidden_size
@@ -30,8 +30,12 @@ class OctResNet50GRU2(nn.Module):
         self.avg_pool = nn.AdaptiveAvgPool2d((1, 1))
         self.dropout = nn.Dropout(p=0.5)
 
-        # self.softmax = nn.Softmax(dim=2)
-        self.softmax = TemperatureSoftmax(dim=2)
+        if softmax is None:
+            self.softmax = None
+        elif softmax == 'normal':
+            self.softmax = nn.Softmax()
+        elif softmax == 'temp':
+            self.softmax = TemperatureSoftmax()
 
         if bidirectional:
             self.gru1 = nn.GRU(self.resnet.fc.in_features, hidden_size=hidden_size//2, batch_first=True,bidirectional=True)
@@ -74,8 +78,7 @@ class OctResNet50GRU2(nn.Module):
         b, s, c, h, w = x.size()
         x = self.encode(x.view(-1, c, h, w))
         x = self.decode(x.view(b, s, -1))
-        x = x.view(b, 3, -1)
-        x = self.softmax(x)
+        x = self.softmax(x) if not self.softmax is None else x
         return x
 
 
