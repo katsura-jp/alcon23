@@ -8,10 +8,10 @@ except:
 
 __all__ = ['OctResNet', 'oct_resnet26', 'oct_resnet50', 'oct_resnet101', 'oct_resnet152', 'oct_resnet200']
 
-activation = nn.ReLU(inplace=True)
+# activation = nn.ReLU(inplace=True)
 # activation = nn.ELU(inplace=True)
 # activation = GeLU()
-# activation = Swish()
+activation = Swish()
 
 class OctaveConv(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, alpha_in=0.5, alpha_out=0.5, stride=1, padding=0, dilation=1,
