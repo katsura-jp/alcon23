@@ -1,8 +1,17 @@
 import torch
 import torch.nn as nn
+try:
+    from .activation import *
+except:
+    from activation import *
+
 
 __all__ = ['OctResNet', 'oct_resnet26', 'oct_resnet50', 'oct_resnet101', 'oct_resnet152', 'oct_resnet200']
 
+activation = nn.ReLU(inplace=True)
+# activation = nn.ELU(inplace=True)
+# activation = GeLU()
+# activation = Swish()
 
 class OctaveConv(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, alpha_in=0.5, alpha_out=0.5, stride=1, padding=0, dilation=1,
@@ -70,7 +79,8 @@ class Conv_BN_ACT(nn.Module):
                                groups, bias)
         self.bn_h = None if alpha_out == 1 else norm_layer(int(out_channels * (1 - alpha_out)))
         self.bn_l = None if alpha_out == 0 else norm_layer(int(out_channels * alpha_out))
-        self.act = activation_layer(inplace=True)
+        # self.act = activation_layer(inplace=True)
+        self.act = activation
 
     def forward(self, x):
         x_h, x_l = self.conv(x)
@@ -91,7 +101,7 @@ class BasicBlock(nn.Module):
                                  norm_layer=norm_layer)
         self.conv2 = Conv_BN(width, planes * self.expansion, kernel_size=3, norm_layer=norm_layer,
                              alpha_in=0 if output else 0.5, alpha_out=0 if output else 0.5)
-        self.relu = nn.ReLU(inplace=True)
+        self.relu = activation
         self.downsample = downsample
         self.stride = stride
 
@@ -131,7 +141,7 @@ class Bottleneck(nn.Module):
                                  alpha_in=0 if output else 0.5, alpha_out=0 if output else 0.5)
         self.conv3 = Conv_BN(width, planes * self.expansion, kernel_size=1, norm_layer=norm_layer,
                              alpha_in=0 if output else 0.5, alpha_out=0 if output else 0.5)
-        self.relu = nn.ReLU(inplace=True)
+        self.relu = activation
         self.downsample = downsample
         self.stride = stride
 
@@ -172,7 +182,7 @@ class OctResNet(nn.Module):
         self.conv1 = nn.Conv2d(3, self.inplanes, kernel_size=7, stride=2, padding=3,
                                bias=False)
         self.bn1 = norm_layer(self.inplanes)
-        self.relu = nn.ReLU(inplace=True)
+        self.relu = activation
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         self.layer1 = self._make_layer(block, 64, layers[0], norm_layer=norm_layer, alpha_in=0)
         self.layer2 = self._make_layer(block, 128, layers[1], stride=2, norm_layer=norm_layer)
