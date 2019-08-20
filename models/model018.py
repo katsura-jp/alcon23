@@ -8,9 +8,10 @@ except:
     from metrics import ArcMarginProduct
 
 
-class ArcInceptionV4GRU2(nn.Module):
-    def __init__(self, num_classes, hidden_size=512, bidirectional=False, dropout=0.5, load_weight=None):
-        super(ArcInceptionV4GRU2, self).__init__()
+
+class InceptionV4GRU2(nn.Module):
+    def __init__(self, num_classes, hidden_size=512, bidirectional=False, dropout=0.5, load_weight=None, s=30.0, m=0.50, easy_margin=False):
+        super(InceptionV4GRU2, self).__init__()
         self.num_classes = num_classes
         self.hidden_size = hidden_size
         self.bidirectional = bidirectional
@@ -30,7 +31,7 @@ class ArcInceptionV4GRU2(nn.Module):
         # self.fc = nn.Linear(hidden_size, num_classes)
         self.relu = nn.ReLU(inplace=True)
         self.arc_margin_product = ArcMarginProduct(in_features=hidden_size, out_features=num_classes,
-                                                   s=30.0, m=0.50, easy_margin=False)
+                                                   s=s, m=m, easy_margin=easy_margin)
 
     def encode(self, x):
         x = self.features(x)

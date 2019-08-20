@@ -4,6 +4,10 @@ import os
 import math
 import pandas as pd
 from .utils import *
+import sys
+sys.path.append('../')
+from models import *
+
 
 def get_root_dir(n=7):
     if n == 7:
@@ -38,10 +42,6 @@ def get_root_dir(n=7):
 
 
 def get_model(n=7):
-    import sys
-    sys.path.append('../')
-    from models import *
-
     if n == 7:
         model = OctResNetGRU2(num_classes=48, hidden_size=512, bidirectional=True, load_weight=None)
     elif n == 8:
