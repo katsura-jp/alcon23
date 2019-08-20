@@ -13,6 +13,7 @@ from .model013 import PreActOctResNetGRU2
 from .model014 import DenseNet201GRU2
 from .model015 import InceptionV4GRU2
 from .model017 import OctResNet50GRU2
+from .model018 import ArcInceptionV4GRU2
 
 from .inceptionv4 import *
 from .senet import *
