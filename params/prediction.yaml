@@ -1,0 +1,11 @@
+batch size: 40
+device: cuda:0
+dataroot: /mnt/hdd1/alcon2019/input/dataset/
+vocabdir: /mnt/hdd1/alcon2019/input/vocab/
+tabledir: /mnt/hdd1/alcon2019/input/tables/
+save path: /mnt/hdd1/alcon2019/
+GPU: 1
+thread: 16
+seed: 2019
+resolution: 6
+snap_range: [0, 5]

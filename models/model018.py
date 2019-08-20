@@ -8,9 +8,9 @@ except:
     from metrics import ArcMarginProduct
 
 
-class InceptionV4GRU2(nn.Module):
+class ArcInceptionV4GRU2(nn.Module):
     def __init__(self, num_classes, hidden_size=512, bidirectional=False, dropout=0.5, load_weight=None):
-        super(InceptionV4GRU2, self).__init__()
+        super(ArcInceptionV4GRU2, self).__init__()
         self.num_classes = num_classes
         self.hidden_size = hidden_size
         self.bidirectional = bidirectional
@@ -74,7 +74,7 @@ def test():
     # inputs = torch.FloatTensor(6, 3, 3,200, 200)
     inputs = torch.FloatTensor(16, 3, 3, 192 , 128)
     label = torch.tensor([random.randint(0,47) for _ in range(16*3)])
-    model = InceptionV4GRU2(48, 512, bidirectional=True)
+    model = ArcInceptionV4GRU2(48, 512, bidirectional=True)
     label = torch.eye(48)[label]
     # model = model.to('cuda:0')
     # inputs = inputs.to('cuda:0')
