@@ -377,68 +377,68 @@ def main():
         writer.export_scalars_to_json(os.path.join(outdir, 'history.json'))
         writer.close()
 
-        # Local cv
-
-        target_list = list()
-        for _, targets, _ in valid_dataloader:
-            targets = targets.argmax(dim=2)
-            target_list.append(targets)
-        target_list = torch.cat(target_list)
-
-        mb = master_bar(range(n_snap))
-        valid_logit_dict = dict()
-        init = True
-        for i in mb:
-            model.load_state_dict(torch.load(os.path.join(outdir, f'best_loss_{i+1}.pth')))
-            logit_alcon_rnn(model, valid_dataloader, param['device'], valid_logit_dict, div=n_snap, init=init)
-            init = False
-
-        pred_list = torch.stack(list(valid_logit_dict.values()))
-        pred_list = pred_list.softmax(dim=2)
-        local_accuracy = accuracy_three_character(pred_list, target_list)
-        logger.debug('LOCAL CV : {:5%}'.format(local_accuracy))
-        torch.save(valid_logit_dict, os.path.join(outdir, f'fold{fold}_valid_logit.pth'))
-
-        local_cv['fold{}'.format(fold)] = {'accuracy': local_accuracy, 'valid_size': len(valid_dataset)}
-
-        del train_dataset, valid_dataset
-        del train_dataloader, valid_dataloader
-        del scheduler, optimizer
-        del valid_logit_dict, target_list
-        gc.collect()
-
-        logger.debug('=========== Prediction phrase ===========')
-
-        if param['debug']:
-            test_dataset = AlconDataset(df=get_test_df(param['tabledir']).iloc[:param['batch size'] * 12],
-                                        augmentation=get_test_augmentation(*get_resolution(param['resolution'])),
-                                        datadir=os.path.join(param['dataroot'], 'test', 'imgs'), mode='test')
-        else:
-            test_dataset = AlconDataset(df=get_test_df(param['tabledir']),
-                                        augmentation=get_test_augmentation(*get_resolution(param['resolution'])),
-                                        datadir=os.path.join(param['dataroot'], 'test', 'imgs'), mode='test')
-
-        test_dataloader = DataLoader(test_dataset, batch_size=param['batch size'], num_workers=param['thread'],
-                                     pin_memory=False, drop_last=False, shuffle=False)
-        logger.debug('test dataset size: {}'.format(len(test_dataset)))
-        logger.debug('test loader size: {}'.format(len(test_dataloader)))
-
-        test_logit_dict = dict()
-        init = True
-        for i in range(n_snap):
-            logger.debug('load weight  :  {}'.format(os.path.join(outdir, f'best_loss_{i+1}.pth')))
-            model.load_state_dict(torch.load(os.path.join(outdir, f'best_loss_{i+1}.pth')))
-            logit_alcon_rnn(model, test_dataloader, param['device'], test_logit_dict, div=n_snap, init=init)
-            init = False
-
-        torch.save(test_logit_dict, os.path.join(outdir, 'prediction.pth'))
-        output_list = make_submission(test_logit_dict)
-        pd.DataFrame(output_list).sort_values('ID').set_index('ID').to_csv(os.path.join(outdir, 'test_prediction.csv'))
-        logger.debug('success!')
-        logger.removeHandler(file_handler)
-
-        del test_dataset, test_dataloader
-        gc.collect()
+        # # Local cv
+        #
+        # target_list = list()
+        # for _, targets, _ in valid_dataloader:
+        #     targets = targets.argmax(dim=2)
+        #     target_list.append(targets)
+        # target_list = torch.cat(target_list)
+        #
+        # mb = master_bar(range(n_snap))
+        # valid_logit_dict = dict()
+        # init = True
+        # for i in mb:
+        #     model.load_state_dict(torch.load(os.path.join(outdir, f'best_loss_{i+1}.pth')))
+        #     logit_alcon_rnn(model, valid_dataloader, param['device'], valid_logit_dict, div=n_snap, init=init)
+        #     init = False
+        #
+        # pred_list = torch.stack(list(valid_logit_dict.values()))
+        # pred_list = pred_list.softmax(dim=2)
+        # local_accuracy = accuracy_three_character(pred_list, target_list)
+        # logger.debug('LOCAL CV : {:5%}'.format(local_accuracy))
+        # torch.save(valid_logit_dict, os.path.join(outdir, f'fold{fold}_valid_logit.pth'))
+        #
+        # local_cv['fold{}'.format(fold)] = {'accuracy': local_accuracy, 'valid_size': len(valid_dataset)}
+        #
+        # del train_dataset, valid_dataset
+        # del train_dataloader, valid_dataloader
+        # del scheduler, optimizer
+        # del valid_logit_dict, target_list
+        # gc.collect()
+        #
+        # logger.debug('=========== Prediction phrase ===========')
+        #
+        # if param['debug']:
+        #     test_dataset = AlconDataset(df=get_test_df(param['tabledir']).iloc[:param['batch size'] * 12],
+        #                                 augmentation=get_test_augmentation(*get_resolution(param['resolution'])),
+        #                                 datadir=os.path.join(param['dataroot'], 'test', 'imgs'), mode='test')
+        # else:
+        #     test_dataset = AlconDataset(df=get_test_df(param['tabledir']),
+        #                                 augmentation=get_test_augmentation(*get_resolution(param['resolution'])),
+        #                                 datadir=os.path.join(param['dataroot'], 'test', 'imgs'), mode='test')
+        #
+        # test_dataloader = DataLoader(test_dataset, batch_size=param['batch size'], num_workers=param['thread'],
+        #                              pin_memory=False, drop_last=False, shuffle=False)
+        # logger.debug('test dataset size: {}'.format(len(test_dataset)))
+        # logger.debug('test loader size: {}'.format(len(test_dataloader)))
+        #
+        # test_logit_dict = dict()
+        # init = True
+        # for i in range(n_snap):
+        #     logger.debug('load weight  :  {}'.format(os.path.join(outdir, f'best_loss_{i+1}.pth')))
+        #     model.load_state_dict(torch.load(os.path.join(outdir, f'best_loss_{i+1}.pth')))
+        #     logit_alcon_rnn(model, test_dataloader, param['device'], test_logit_dict, div=n_snap, init=init)
+        #     init = False
+        #
+        # torch.save(test_logit_dict, os.path.join(outdir, 'prediction.pth'))
+        # output_list = make_submission(test_logit_dict)
+        # pd.DataFrame(output_list).sort_values('ID').set_index('ID').to_csv(os.path.join(outdir, 'test_prediction.csv'))
+        # logger.debug('success!')
+        # logger.removeHandler(file_handler)
+        #
+        # del test_dataset, test_dataloader
+        # gc.collect()
 
     print('success!')
 
