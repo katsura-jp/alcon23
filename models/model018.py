@@ -9,9 +9,9 @@ except:
 
 
 
-class InceptionV4GRU2(nn.Module):
+class ArcInceptionV4GRU2(nn.Module):
     def __init__(self, num_classes, hidden_size=512, bidirectional=False, dropout=0.5, load_weight=None, s=30.0, m=0.50, easy_margin=False):
-        super(InceptionV4GRU2, self).__init__()
+        super(ArcInceptionV4GRU2, self).__init__()
         self.num_classes = num_classes
         self.hidden_size = hidden_size
         self.bidirectional = bidirectional
@@ -27,10 +27,10 @@ class InceptionV4GRU2(nn.Module):
         else:
             self.gru1 = nn.GRU(self.backbone.last_linear.in_features, hidden_size=hidden_size, batch_first=True, bidirectional=False)
             self.gru2 = nn.GRU(hidden_size, hidden_size=hidden_size, batch_first=True, bidirectional=False)
-
-        # self.fc = nn.Linear(hidden_size, num_classes)
+        self.fc = nn.Linear(hidden_size, 512)
+        self.bn = nn.BatchNorm1d(512)
         self.relu = nn.ReLU(inplace=True)
-        self.arc_margin_product = ArcMarginProduct(in_features=hidden_size, out_features=num_classes,
+        self.arc_margin_product = ArcMarginProduct(in_features=512, out_features=num_classes,
                                                    s=s, m=m, easy_margin=easy_margin)
 
     def encode(self, x):
@@ -51,9 +51,10 @@ class InceptionV4GRU2(nn.Module):
 
         x, _ = self.gru1(x, hidden)
         x, _ = self.gru2(x, hidden)
-
-        # x = self.fc(x.contiguous().view(-1, x.size(2)))
-        x = x.contiguous().view(-1, x.size(2))
+    
+        x = self.fc(x.contiguous().view(-1, x.size(2)))
+        # x = x.contiguous().view(-1, x.size(2))
+        x = self.bn(x)
         return x
 
     def forward(self, x, label):
@@ -75,10 +76,11 @@ def test():
     # inputs = torch.FloatTensor(6, 3, 3,200, 200)
     inputs = torch.FloatTensor(16, 3, 3, 192 , 128)
     label = torch.tensor([random.randint(0,47) for _ in range(16*3)])
-    model = ArcInceptionV4GRU2(48, 512, bidirectional=True)
+    model = ArcInceptionV4GRU2(48, 512*2, bidirectional=True)
     label = torch.eye(48)[label]
-    # model = model.to('cuda:0')
-    # inputs = inputs.to('cuda:0')
+    model = model.to('cuda:0')
+    inputs = inputs.to('cuda:0')
+    label = label.to('cuda:0')
     logits = model(inputs, label)
     print(logits.size())
     assert logits.size() == (16 * 3, 48)

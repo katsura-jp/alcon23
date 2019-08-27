@@ -217,7 +217,7 @@ def main():
                 optimizer.zero_grad()
                 logits = model(inputs)  # logits.size() = (batch*3, 48)
                 preds = logits.view(targets.size(0), 3, -1).softmax(dim=2)
-                loss = loss_fn(logits, targets.view(-1, targets.size(2)))
+                loss = loss_fn(logits, targets.view(-1, targets.size(2)).argmax(dim=1))
                 with amp.scale_loss(loss, optimizer) as scaled_loss:
                     scaled_loss.backward()
                 # loss.backward()

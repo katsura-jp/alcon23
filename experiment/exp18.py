@@ -23,6 +23,7 @@ from src.collates import *
 from src.scheduler import *
 from src.losses import *
 from train_methods import *
+from src.post_process import get_root_dir
 
 EXP_NO = os.path.basename(__file__).split('.')[0][3:]
 EXP_NAME = str(os.path.basename(__file__).split('.')[-2])
@@ -61,6 +62,7 @@ def main():
         torch.backends.cudnn.benchmark = True
 
     local_cv = dict()
+    weight_dir = get_root_dir(n=9)
 
     for fold in param['fold']:
         # /mnt/hdd1/alcon2019/ + exp0/ + 2019-mm-dd_hh-mm-ss/ + foldN
@@ -134,9 +136,12 @@ def main():
         model, optimizer = amp.initialize(model, optimizer, opt_level="O1")
         if param['GPU'] > 0:
             model = nn.DataParallel(model)
-
-        loss_fn = FocalLoss(gamma=2).to(param['device'])
+        model.load_state_dict(torch.load(os.path.join(weight_dir[fold], 'best_loss.pth')))
+        # loss_fn = FocalLoss(gamma=2).to(param['device'])
         # loss_fn = nn.CrossEntropyLoss().to(param['device'])
+        # loss_fn = LabelSmoothLoss(alpha=0.2).to(param['device'])
+        # loss_fn = MarginCrossEntropyLoss(alpha=1.0).to(param['device'])
+        loss_fn = MarginCrossEntropyKLLoss(alpha=1.0, beta=0.01, smooth=0.01).to(param['device'])
         eval_fn = accuracy_one_character
 
         writer = tbx.SummaryWriter("../log/exp{}/{}/fold{}".format(EXP_NO, now_date, fold))
@@ -160,9 +165,9 @@ def main():
         val_iter = math.ceil(len(train_dataloader) / 3)
         print('val_iter: {}'.format(val_iter))
         # Hyper params
-        cycle_iter = 5
-        snap_start = 2
-        n_snap = 8
+        cycle_iter = 10
+        snap_start = 0
+        n_snap = 2
 
         mb = master_bar(range((n_snap+snap_start) * cycle_iter))
         scheduler = CosineAnnealingWarmUpRestarts(optimizer, T_0=len(train_dataloader) * cycle_iter, T_mult=1, T_up=500,
@@ -217,7 +222,7 @@ def main():
                 optimizer.zero_grad()
                 logits = model(inputs)  # logits.size() = (batch*3, 48)
                 preds = logits.view(targets.size(0), 3, -1).softmax(dim=2)
-                loss = loss_fn(logits, targets.view(-1, targets.size(2)))
+                loss = loss_fn(logits, targets.view(-1, targets.size(2)).argmax(dim=1))
                 with amp.scale_loss(loss, optimizer) as scaled_loss:
                     scaled_loss.backward()
                 # loss.backward()

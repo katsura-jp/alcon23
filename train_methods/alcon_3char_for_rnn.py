@@ -61,6 +61,7 @@ def valid_alcon_rnn(model, dataloader, device, loss_fn, eval_fn, softmax=True):
 
             logits = model(inputs)  # logits.size() = (batch*3, 48)
             preds = logits.view(targets.size(0), 3, -1).softmax(dim=2) if softmax else logits.view(targets.size(0), 3, -1)
+            # loss = loss_fn(logits, targets.view(-1, targets.size(2)))
             loss = loss_fn(logits, targets.view(-1, targets.size(2)).argmax(dim=1))
             avg_loss += loss.item()
             _avg_accuracy = eval_fn(preds, targets.argmax(dim=2)).item()
@@ -115,3 +116,30 @@ def logit_alcon_rnn(model, dataloader, device, prediction, div=1, init=True):
                     prediction[int(index.item())] = logits[i].detach().to('cpu').type(torch.float32) / div
                 else:
                     prediction[int(index.item())] += logits[i].detach().to('cpu').type(torch.float32) / div
+
+
+
+
+def valid_alcon_rnn_metric(model, dataloader, device, loss_fn, eval_fn, softmax=True):
+    model.eval()
+    with torch.no_grad():
+        avg_loss = 0
+        avg_accuracy = 0
+        three_char_accuracy = 0
+        for step, (inputs, targets, indices) in enumerate(dataloader):
+            inputs = inputs.to(device)
+            targets = targets.to(device)
+
+            logits = model(inputs, targets.view(-1, targets.size(2)))  # logits.size() = (batch*3, 48)
+            preds = logits.view(targets.size(0), 3, -1).softmax(dim=2) if softmax else logits.view(targets.size(0), 3, -1)
+            loss = loss_fn(logits, targets.view(-1, targets.size(2)).argmax(dim=1))
+            avg_loss += loss.item()
+            _avg_accuracy = eval_fn(preds, targets.argmax(dim=2)).item()
+            avg_accuracy += _avg_accuracy
+            _three_char_accuracy = accuracy_three_character(preds, targets.argmax(dim=2), mean=True).item()
+            three_char_accuracy += _three_char_accuracy
+
+        avg_loss /= len(dataloader)
+        avg_accuracy /= len(dataloader)
+        three_char_accuracy /= len(dataloader)
+    return avg_loss, avg_accuracy, three_char_accuracy

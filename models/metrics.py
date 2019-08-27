@@ -40,7 +40,7 @@ class ArcMarginProduct(nn.Module):
         if self.easy_margin:
             phi = torch.where(cosine > 0, phi, cosine)
         else:
-            phi = torch.where(cosine > self.th, phi, cosine - self.mm)
+            phi = torch.where(cosine.type(torch.float32) > self.th, phi, cosine.type(torch.float32) - self.mm)
         # --------------------------- convert label to one-hot ---------------------------
         # one_hot = torch.zeros(cosine.size(), requires_grad=True, device='cuda')
         # one_hot = torch.zeros(cosine.size(), device=cosine.device)

@@ -119,7 +119,7 @@ def main():
 
         # model
         model = ArcInceptionV4GRU2(num_classes=48, hidden_size=1024, bidirectional=True, load_weight=None, dropout=param['dropout'],
-                                  s=30.0, m=0.50)
+                                      s=30.0, m=0.50)
 
 
 
@@ -132,11 +132,12 @@ def main():
 
 
         model = model.to(param['device'])
-        model, optimizer = amp.initialize(model, optimizer, opt_level="O1")
+        # model, optimizer = amp.initialize(model, optimizer, opt_level="O1")
         if param['GPU'] > 0:
             model = nn.DataParallel(model)
 
-        loss_fn = nn.CrossEntropyLoss().to(param['device'])
+        loss_fn = FocalLoss(gamma=2).to(param['device'])
+        # loss_fn = nn.CrossEntropyLoss().to(param['device'])
         eval_fn = accuracy_one_character
 
         writer = tbx.SummaryWriter("../log/exp{}/{}/fold{}".format(EXP_NO, now_date, fold))
@@ -215,13 +216,13 @@ def main():
                 inputs = inputs.to(param['device'])
                 targets = targets.to(param['device'])
                 optimizer.zero_grad()
-                logits = model(inputs)  # logits.size() = (batch*3, 48)
+                logits = model(inputs, targets.view(-1, targets.size(2))) # logits.size() = (batch*3, 48)
                 preds = logits.view(targets.size(0), 3, -1).softmax(dim=2)
                 loss = loss_fn(logits, targets.view(-1, targets.size(2)).argmax(dim=1))
-                with amp.scale_loss(loss, optimizer) as scaled_loss:
-                    scaled_loss.backward()
-                # loss.backward()
-                # torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+                # with amp.scale_loss(loss, optimizer) as scaled_loss:
+                #     scaled_loss.backward()
+                loss.backward()
+                torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
                 optimizer.step()
                 avg_train_loss += loss.item()
                 _avg_accuracy = eval_fn(preds, targets.argmax(dim=2)).item()
@@ -236,7 +237,7 @@ def main():
                     '3accuracy': _three_char_accuracy
                 }, step + epoch * len(train_dataloader))
                 if step % val_iter == 0 and step != 0:
-                    avg_valid_loss, avg_valid_accuracy, avg_three_valid_acc = valid_alcon_rnn(model, valid_dataloader,
+                    avg_valid_loss, avg_valid_accuracy, avg_three_valid_acc = valid_alcon_rnn_metric(model, valid_dataloader,
                                                                                               param['device'],
                                                                                               loss_fn, eval_fn)
                     writer.add_scalars("data/metric/valid", {
@@ -294,7 +295,7 @@ def main():
 
 
 
-            avg_valid_loss, avg_valid_accuracy, avg_three_valid_acc = valid_alcon_rnn(model, valid_dataloader, param['device'],
+            avg_valid_loss, avg_valid_accuracy, avg_three_valid_acc = valid_alcon_rnn_metric(model, valid_dataloader, param['device'],
                                                                                   loss_fn, eval_fn)
 
             writer.add_scalars("data/metric/valid", {

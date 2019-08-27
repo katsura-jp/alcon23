@@ -34,7 +34,12 @@ def get_root_dir(n=7):
                     '/mnt/hdd1/alcon2019/exp11/2019-08-03_01-34-03/fold2/',
                     '/mnt/hdd1/alcon2019/exp11/2019-08-03_01-34-03/fold3/',
                     '/mnt/hdd1/alcon2019/exp11/2019-08-03_01-34-03/fold4/']
-
+    elif n == 16:
+        rootdirs = ['/mnt/hdd1/alcon2019/exp16/2019-08-26_07-30-18/fold0/',
+                    '/mnt/hdd1/alcon2019/exp16/2019-08-26_07-30-18/fold1/',
+                    '/mnt/hdd1/alcon2019/exp16/2019-08-26_07-30-18/',
+                    '/mnt/hdd1/alcon2019/exp16/2019-08-26_07-30-18/',
+                    '/mnt/hdd1/alcon2019/exp16/2019-08-26_07-30-18/']
     else:
         raise "Not such file"
     
@@ -50,6 +55,8 @@ def get_model(n=7):
         model = InceptionV4GRU2(num_classes=48, hidden_size=512, bidirectional=True, load_weight=None)
     elif n == 11:
         model = SEResNeXtGRU2(num_classes=48, hidden_size=512, bidirectional=True, load_weight=None)
+    elif n == 16:
+        model = InceptionV4GRU2(num_classes=48, hidden_size=512, bidirectional=True, load_weight=None)
     else:
         raise "Not such file"
     return model

@@ -159,10 +159,10 @@ def main():
         val_iter = math.ceil(len(train_dataloader) / 3)
         print('val_iter: {}'.format(val_iter))
         # Hyper params
-        cycle_iter = 5
-        snap_start = 2
-        n_snap = 8
-
+        cycle_iter = 12
+        snap_start = 0
+        n_snap = 5
+        eval_epoch = 10
         mb = master_bar(range((n_snap+snap_start) * cycle_iter))
         scheduler = CosineAnnealingWarmUpRestarts(optimizer, T_0=len(train_dataloader) * cycle_iter, T_mult=1, T_up=500,
                                                   eta_max=0.1)
@@ -176,7 +176,7 @@ def main():
             snapshot = info['snapshot']
             min_loss = info['min_loss']
             max_char_acc = info['max_char_acc']
-            max_3char_acc = info['max_char_3acc']
+            max_3char_acc = info['max_3char_acc']
             snapshot_loss = info['snapshot_loss']
             snapshot_eval = info['snapshot_eval']
             snapshot_eval3 = info['snapshot_eval3']
@@ -234,7 +234,7 @@ def main():
                     'accuracy': _avg_accuracy,
                     '3accuracy': _three_char_accuracy
                 }, step + epoch * len(train_dataloader))
-                if step % val_iter == 0 and step != 0:
+                if step % val_iter == 0 and step != 0 and epoch % cycle_iter >= eval_epoch:
                     avg_valid_loss, avg_valid_accuracy, avg_three_valid_acc = valid_alcon_rnn(model, valid_dataloader,
                                                                                               param['device'],
                                                                                               loss_fn, eval_fn)

@@ -7,10 +7,10 @@ posのLossを最小化、negを最大化したい
 log(softmax(pos)) + log(1-softmax(neg))
 '''
 
-class MarginCrossEntropy(nn.CrossEntropyLoss):
+class MarginCrossEntropyLoss(nn.CrossEntropyLoss):
     def __init__(self, alpha=1.0, weight=None, size_average=None, ignore_index=-100,
                  reduce=None, reduction='mean'):
-        super(MarginCrossEntropy, self).__init__(weight, size_average, ignore_index, reduce, reduction)
+        super(MarginCrossEntropyLoss, self).__init__(weight, size_average, ignore_index, reduce, reduction)
         self.alpha = alpha
     def forward(self, input, target):
         probs = F.softmax(input, 1)
