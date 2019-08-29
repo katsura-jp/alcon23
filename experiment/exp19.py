@@ -62,7 +62,7 @@ def main():
         torch.backends.cudnn.benchmark = True
 
     local_cv = dict()
-    weight_dir = get_root_dir(n=9)
+    weight_dir = get_root_dir(n=11)
 
     for fold in param['fold']:
         # /mnt/hdd1/alcon2019/ + exp0/ + 2019-mm-dd_hh-mm-ss/ + foldN
@@ -120,9 +120,9 @@ def main():
         logger.debug('valid loader size: {}'.format(len(valid_dataloader)))
 
         # model
-        model = InceptionV4GRU2(num_classes=48, hidden_size=512, bidirectional=True, load_weight=None, dropout=param['dropout'])
+        # model = InceptionV4GRU2(num_classes=48, hidden_size=512, bidirectional=True, load_weight=None, dropout=param['dropout'])
 
-
+        model = SEResNeXtGRU2(num_classes=48, hidden_size=512, bidirectional=True, load_weight=None)
 
         param['model'] = model.__class__.__name__
 
